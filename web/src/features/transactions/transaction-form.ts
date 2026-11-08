@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isValidDateText } from '@/lib/dates'
 
 export type TxType = 'income' | 'expense' | 'transfer'
 
@@ -17,17 +18,11 @@ export interface TransactionFormValues {
   note: string
 }
 
-const validDate = (s: string) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false
-  const d = new Date(`${s}T00:00:00Z`)
-  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s
-}
-
 export const transactionSchema = z
   .object({
     type: z.enum(['income', 'expense', 'transfer']),
     amountCents: z.number({ message: 'Monto no válido' }).nullable(),
-    date: z.string().refine(validDate, 'Fecha no válida'),
+    date: z.string().refine(isValidDateText, 'Fecha no válida'),
     source: z.string(),
     destination: z.string(),
     categoryId: z.string(),
