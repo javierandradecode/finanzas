@@ -1,10 +1,17 @@
+import type { ReactNode } from 'react'
 import { Navigate, createBrowserRouter } from 'react-router-dom'
 import { AppLayout } from '@/components/AppLayout'
 import { NAV_ITEMS } from '@/components/nav-items'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { LoginPage } from '@/pages/LoginPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
+import { AccountsPage } from '@/pages/AccountsPage'
 import { RegisterPage } from '@/pages/RegisterPage'
+
+// Screens built so far; the rest of the menu still shows a placeholder.
+const PAGES: Record<string, ReactNode> = {
+  '/cuentas': <AccountsPage />,
+}
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -16,7 +23,7 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: NAV_ITEMS.map(({ label, path }) => ({
           path,
-          element: <PlaceholderPage title={label} />,
+          element: PAGES[path] ?? <PlaceholderPage title={label} />,
         })),
       },
     ],

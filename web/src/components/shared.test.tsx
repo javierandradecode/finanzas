@@ -13,7 +13,7 @@ describe('CategoryIcon', () => {
 })
 
 describe('MoneyInput', () => {
-  it('reports cents while typing and null for invalid text', async () => {
+  it('reports cents, null when empty and NaN for invalid text', async () => {
     const onChange = vi.fn()
     render(<MoneyInput value={null} onChange={onChange} aria-label="monto" />)
     const input = screen.getByLabelText('monto')
@@ -22,8 +22,9 @@ describe('MoneyInput', () => {
     expect(onChange).toHaveBeenLastCalledWith(1250)
 
     await userEvent.clear(input)
-    await userEvent.type(input, 'abc')
     expect(onChange).toHaveBeenLastCalledWith(null)
+    await userEvent.type(input, 'abc')
+    expect(onChange).toHaveBeenLastCalledWith(Number.NaN)
   })
 
   it('shows the initial value and reformats on blur', async () => {

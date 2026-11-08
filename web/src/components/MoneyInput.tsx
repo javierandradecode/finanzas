@@ -3,9 +3,18 @@ import { Input } from '@/components/ui/input'
 import { parseMoneyToCents } from '@/lib/money'
 
 const toText = (cents: number | null) =>
-  cents === null ? '' : (cents / 100).toFixed(2).replace('.', ',')
+  cents === null || Number.isNaN(cents)
+    ? ''
+    : (cents / 100).toFixed(2).replace('.', ',')
+
+/** Empty text → null, invalid text → NaN (so a schema can reject it), else cents. */
+function fromText(text: string): number | null {
+  if (text.trim() === '') return null
+  return parseMoneyToCents(text) ?? Number.NaN
+}
 
 type Props = Omit<ComponentProps<typeof Input>, 'value' | 'onChange' | 'type'> & {
+  /** Integer cents; null when empty, NaN when what was typed is not an amount. */
   value: number | null
   onChange: (cents: number | null) => void
 }
@@ -17,9 +26,9 @@ export function MoneyInput({ value, onChange, onBlur, ...rest }: Props) {
   // Follow outside changes (e.g. a form reset) but never fight the user typing.
   // Adjusting state during render is React's alternative to a syncing effect.
   const [prevValue, setPrevValue] = useState(value)
-  if (value !== prevValue) {
+  if (!Object.is(value, prevValue)) {
     setPrevValue(value)
-    if (parseMoneyToCents(text) !== value) setText(toText(value))
+    if (!Object.is(fromText(text), value)) setText(toText(value))
   }
 
   return (
@@ -29,11 +38,11 @@ export function MoneyInput({ value, onChange, onBlur, ...rest }: Props) {
       value={text}
       onChange={(e) => {
         setText(e.target.value)
-        onChange(parseMoneyToCents(e.target.value))
+        onChange(fromText(e.target.value))
       }}
       onBlur={(e) => {
-        const cents = parseMoneyToCents(text)
-        if (cents !== null) setText(toText(cents))
+        const cents = fromText(text)
+        if (cents !== null && !Number.isNaN(cents)) setText(toText(cents))
         onBlur?.(e)
       }}
     />
