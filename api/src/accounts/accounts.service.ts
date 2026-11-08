@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { definedOnly } from '../common/utils/defined-only';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 import { Account, AccountDocument } from './schemas/account.schema';
@@ -61,7 +62,7 @@ export class AccountsService {
     if (willBeActive && identityChanges) {
       await this.assertNameFree(userId, dto.name ?? doc.name, doc._id);
     }
-    Object.assign(doc, dto);
+    Object.assign(doc, definedOnly(dto));
     await doc.save();
     return doc;
   }

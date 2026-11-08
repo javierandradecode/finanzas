@@ -1,5 +1,7 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { Types } from 'mongoose';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoriesService } from './categories.service';
 
 const userId = new Types.ObjectId().toString();
@@ -121,6 +123,21 @@ describe('CategoriesService', () => {
         service.update(userId, String(doc._id), { name: 'transporte' }),
       ).rejects.toBeInstanceOf(ConflictException);
       expect(doc.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('update with a DTO instance', () => {
+    it('applies only the provided fields (DTO instances carry undefined keys)', async () => {
+      const doc = makeDoc({ icon: 'utensils', color: '#f97316' });
+      model.findOne
+        .mockReturnValueOnce(query(doc))
+        .mockReturnValueOnce(query(null));
+      const dto = plainToInstance(UpdateCategoryDto, { name: 'Nuevo' });
+      await service.update(userId, String(doc._id), dto);
+      expect(doc.name).toBe('Nuevo');
+      expect(doc.icon).toBe('utensils');
+      expect(doc.color).toBe('#f97316');
+      expect(doc.isArchived).toBe(false);
     });
   });
 

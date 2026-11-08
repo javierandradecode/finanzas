@@ -1,5 +1,7 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { Types } from 'mongoose';
+import { UpdateSubcategoryDto } from './dto/subcategory.dto';
 import { CategoriesService } from './categories.service';
 
 const userId = new Types.ObjectId().toString();
@@ -76,6 +78,21 @@ describe('CategoriesService subcategories', () => {
       await expect(
         service.archiveSubcategory(userId, String(cat._id), missing),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('applies only the provided fields (DTO instances carry undefined keys)', async () => {
+      const sub = makeSub('Supermercado');
+      const cat = makeCategory([sub]);
+      model.findOne.mockReturnValue(query(cat));
+      const dto = plainToInstance(UpdateSubcategoryDto, { name: 'Mercado' });
+      await service.updateSubcategory(
+        userId,
+        String(cat._id),
+        String(sub._id),
+        dto,
+      );
+      expect(sub.name).toBe('Mercado');
+      expect(sub.isArchived).toBe(false);
     });
 
     it('archiving keeps the subcategory and its _id', async () => {

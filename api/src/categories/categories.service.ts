@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
+import { definedOnly } from '../common/utils/defined-only';
 import { DEFAULT_CATEGORIES } from './default-categories';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -83,7 +84,7 @@ export class CategoriesService {
         doc._id,
       );
     }
-    Object.assign(doc, dto);
+    Object.assign(doc, definedOnly(dto));
     await doc.save();
     return doc;
   }
@@ -123,7 +124,7 @@ export class CategoriesService {
     if (willBeActive && identityChanges) {
       this.assertSubNameFree(category, dto.name ?? sub.name, sub._id);
     }
-    Object.assign(sub, dto);
+    Object.assign(sub, definedOnly(dto));
     await category.save();
     return category;
   }
