@@ -9,6 +9,7 @@ import { AccountsPage } from '@/pages/AccountsPage'
 import { CardDetailPage } from '@/pages/CardDetailPage'
 import { CardsPage } from '@/pages/CardsPage'
 import { CategoriesPage } from '@/pages/CategoriesPage'
+import { SubscriptionsPage } from '@/pages/SubscriptionsPage'
 import { TransactionsPage } from '@/pages/TransactionsPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 
@@ -17,6 +18,7 @@ const PAGES: Record<string, ReactNode> = {
   '/cuentas': <AccountsPage />,
   '/categorias': <CategoriesPage />,
   '/tarjetas': <CardsPage />,
+  '/suscripciones': <SubscriptionsPage />,
   '/movimientos': <TransactionsPage />,
 }
 
