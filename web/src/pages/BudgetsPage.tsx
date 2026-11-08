@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -6,24 +6,16 @@ import { useBudgetReport, useCopyBudgets, useDeleteBudget } from '@/api/budgets'
 import { useCategories } from '@/api/categories'
 import { CategoryIcon } from '@/components/CategoryIcon'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { MonthSelector } from '@/components/MonthSelector'
 import { ProgressBar } from '@/components/ProgressBar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useAuth } from '@/features/auth/useAuth'
 import { BudgetDialog } from '@/features/budgets/BudgetDialog'
 import { budgetStatus, copyMessage, type BudgetItem } from '@/features/budgets/budget-form'
-import { formatMonth } from '@/lib/dates'
 import { formatMoney } from '@/lib/money'
-import {
-  currentMonthKey,
-  monthFromSearch,
-  monthsBetween,
-  nextMonth,
-  previousMonth,
-} from '@/lib/months'
+import { monthFromSearch, previousMonth } from '@/lib/months'
 import { cn } from '@/lib/utils'
-
-const MAX_MONTHS_AHEAD = 12
 
 const errorText = (e: unknown) =>
   e instanceof Error ? e.message : 'Ocurrió un error inesperado'
@@ -35,7 +27,6 @@ export function BudgetsPage() {
   const currency = useAuth().user?.currency ?? 'USD'
   const [params, setParams] = useSearchParams()
   const month = monthFromSearch(params)
-  const canGoNext = monthsBetween(currentMonthKey(), month) < MAX_MONTHS_AHEAD
 
   const { data, isPending, error } = useBudgetReport(month)
   const categories = useCategories(true).data
@@ -85,28 +76,7 @@ export function BudgetsPage() {
         </p>
       )}
 
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Mes anterior"
-          onClick={() => setParams({ month: previousMonth(month) })}
-        >
-          <ChevronLeft className="size-4" />
-        </Button>
-        <span data-testid="month" className="min-w-40 text-center text-lg font-medium first-letter:uppercase">
-          {formatMonth(month)}
-        </span>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Mes siguiente"
-          disabled={!canGoNext}
-          onClick={() => setParams({ month: nextMonth(month) })}
-        >
-          <ChevronRight className="size-4" />
-        </Button>
-      </div>
+      <MonthSelector month={month} onChange={(m) => setParams({ month: m })} />
 
       {isPending && <p className="text-muted-foreground">Cargando…</p>}
       {error && (
