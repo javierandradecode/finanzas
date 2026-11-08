@@ -1,20 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ScheduleModule } from '@nestjs/schedule';
+import { FEATURE_MODULES } from './app.modules';
 import { validateEnv } from './config/env.validation';
-import { UsersModule } from './users/users.module';
-import { CategoriesModule } from './categories/categories.module';
-import { AccountsModule } from './accounts/accounts.module';
-import { AuthModule } from './auth/auth.module';
-import { BudgetsModule } from './budgets/budgets.module';
-import { CreditCardsModule } from './credit-cards/credit-cards.module';
-import { InstallmentPurchasesModule } from './installment-purchases/installment-purchases.module';
-import { ReportsModule } from './reports/reports.module';
-import { SubscriptionsModule } from './subscriptions/subscriptions.module';
-import { TransactionsModule } from './transactions/transactions.module';
-import { HealthModule } from './health/health.module';
-import { SecurityModule } from './security/security.module';
 
 @Module({
   imports: [
@@ -26,18 +15,7 @@ import { SecurityModule } from './security/security.module';
         uri: config.getOrThrow<string>('MONGODB_URI'),
       }),
     }),
-    SecurityModule,
-    HealthModule,
-    UsersModule,
-    CategoriesModule,
-    AccountsModule,
-    TransactionsModule,
-    CreditCardsModule,
-    InstallmentPurchasesModule,
-    SubscriptionsModule,
-    BudgetsModule,
-    ReportsModule,
-    AuthModule,
+    ...FEATURE_MODULES,
   ],
 })
 export class AppModule {}

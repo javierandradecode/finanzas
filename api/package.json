@@ -89,7 +89,7 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "transformIgnorePatterns": [
-      "/node_modules/(?!(@nestjs/jwt|@nestjs/mongoose|@nestjs/schedule|@nestjs/config)/)"
+      "/node_modules/(?!(@nestjs/jwt|@nestjs/mongoose|@nestjs/schedule|@nestjs/config|@nestjs/passport|@nestjs/throttler)/)"
     ]
   }
 }
