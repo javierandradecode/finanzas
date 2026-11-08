@@ -115,6 +115,21 @@ describe('SubscriptionDialog', () => {
     expect(screen.getByLabelText('Subcategoría')).toHaveValue('')
   })
 
+  it('a stale subcategory is not submitted after changing the category', async () => {
+    const calls = routeFetch({ ...lists, 'POST /subscriptions': () => jsonResponse(201, sub()) })
+    renderDialog()
+    await loaded()
+    await userEvent.type(screen.getByLabelText('Nombre'), 'Netflix')
+    await userEvent.type(screen.getByLabelText('Monto'), '9,99')
+    await pick('Se paga con', 'account:a1')
+    await pick('Categoría', 'c1')
+    await pick('Subcategoría', 's1')
+    await pick('Categoría', 'c2')
+    await save()
+    await waitFor(() => expect(toast.success).toHaveBeenCalled())
+    expect(calls.find((c) => c.method === 'POST')?.body).not.toHaveProperty('subcategoryId')
+  })
+
   it('defaults the date to today', async () => {
     routeFetch(lists)
     renderDialog()
