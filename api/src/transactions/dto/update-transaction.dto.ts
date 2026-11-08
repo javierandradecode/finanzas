@@ -34,11 +34,19 @@ export class UpdateTransactionDto {
 
   @IsOptional()
   @IsMongoId()
-  accountId?: string;
+  accountId?: string | null;
 
   @IsOptional()
   @IsMongoId()
   toAccountId?: string | null;
+
+  @IsOptional()
+  @IsMongoId()
+  creditCardId?: string | null;
+
+  @IsOptional()
+  @IsMongoId()
+  toCreditCardId?: string | null;
 
   @IsOptional()
   @IsMongoId()

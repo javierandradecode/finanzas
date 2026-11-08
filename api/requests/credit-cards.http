@@ -1,0 +1,123 @@
+@host = http://localhost:3000/api
+# Log in first (see auth.http) and paste the token here
+@token = PASTE_ACCESS_TOKEN_HERE
+# Ids returned by the create requests below
+@accountId = PASTE_ACCOUNT_ID
+@cardId = PASTE_CARD_ID
+@categoryId = PASTE_EXPENSE_CATEGORY_ID
+@purchaseId = PASTE_INSTALLMENT_PURCHASE_ID
+
+### Create a credit card (limit 3000.00; statement closes on the 15th, due on the 5th)
+POST {{host}}/credit-cards
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Visa", "limitCents": 300000, "cutoffDay": 15, "paymentDay": 5, "annualRatePercent": 18 }
+
+### List cards (each shows debtCents and availableCents)
+GET {{host}}/credit-cards
+Authorization: Bearer {{token}}
+
+### Edit a card (debt cannot be edited)
+PATCH {{host}}/credit-cards/{{cardId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "limitCents": 500000, "debtCents": 1 }
+
+### Archive a card (204)
+DELETE {{host}}/credit-cards/{{cardId}}
+Authorization: Bearer {{token}}
+
+### Expense paid with the card (raises the debt)
+POST {{host}}/transactions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "type": "expense", "amountCents": 30000, "date": "2026-03-10T12:00:00Z",
+  "creditCardId": "{{cardId}}", "categoryId": "{{categoryId}}", "note": "Supermercado" }
+
+### Pay the card from an account (a transfer to the card; lowers account and debt)
+POST {{host}}/transactions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "type": "transfer", "amountCents": 10000, "date": "2026-03-12T12:00:00Z",
+  "accountId": "{{accountId}}", "toCreditCardId": "{{cardId}}" }
+
+### Installment purchase: 1200.00 in 6 installments, interest-free
+POST {{host}}/installment-purchases
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "creditCardId": "{{cardId}}", "description": "Laptop", "categoryId": "{{categoryId}}",
+  "totalCents": 120000, "installments": 6, "startDate": "2026-03-10T12:00:00Z" }
+
+### Installment purchase with interest: 600.00 in 3 installments at 12% a year
+POST {{host}}/installment-purchases
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "creditCardId": "{{cardId}}", "description": "TV", "categoryId": "{{categoryId}}",
+  "totalCents": 60000, "installments": 3, "annualRatePercent": 12,
+  "startDate": "2026-03-10T12:00:00Z" }
+
+### List purchases (each includes its schedule)
+GET {{host}}/installment-purchases
+Authorization: Bearer {{token}}
+
+### One purchase with its schedule
+GET {{host}}/installment-purchases/{{purchaseId}}
+Authorization: Bearer {{token}}
+
+### Pay the next installment from an account (capital to the card, interest as an expense)
+POST {{host}}/installment-purchases/{{purchaseId}}/pay
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "accountId": "{{accountId}}", "date": "2026-04-05T12:00:00Z" }
+
+### Edit description / category (amounts cannot change)
+PATCH {{host}}/installment-purchases/{{purchaseId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "description": "Laptop gamer" }
+
+### Delete a purchase (204 only while no installment is paid; reverts the debt)
+DELETE {{host}}/installment-purchases/{{purchaseId}}
+Authorization: Bearer {{token}}
+
+### Statement of the period that contains a date
+GET {{host}}/credit-cards/{{cardId}}/statement?date=2026-03-12
+Authorization: Bearer {{token}}
+
+### Statement of the current period
+GET {{host}}/credit-cards/{{cardId}}/statement
+Authorization: Bearer {{token}}
+
+### What will be paid each month (next 12 months by default)
+GET {{host}}/installment-purchases/projection?months=6
+Authorization: Bearer {{token}}
+
+### Projection for one card
+GET {{host}}/installment-purchases/projection?creditCardId={{cardId}}
+Authorization: Bearer {{token}}
+
+### Edit/delete a managed transaction directly (expects 409)
+PATCH {{host}}/transactions/PASTE_PURCHASE_TRANSACTION_ID
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "note": "x" }
+
+### months out of range (expects 400)
+GET {{host}}/installment-purchases/projection?months=37
+Authorization: Bearer {{token}}
+
+### cutoffDay out of range (expects 400)
+POST {{host}}/credit-cards
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Mala", "limitCents": 1000, "cutoffDay": 32, "paymentDay": 5 }

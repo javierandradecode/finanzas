@@ -27,12 +27,24 @@ export class CreateTransactionDto {
   @Transform(toDate)
   date!: Date;
 
+  /** Required for income and transfers; for expenses, give this or `creditCardId`. */
+  @IsOptional()
   @IsMongoId()
-  accountId!: string;
+  accountId?: string;
 
   @IsOptional()
   @IsMongoId()
   toAccountId?: string;
+
+  /** Expenses paid with a credit card. */
+  @IsOptional()
+  @IsMongoId()
+  creditCardId?: string;
+
+  /** Transfers that pay a credit card. */
+  @IsOptional()
+  @IsMongoId()
+  toCreditCardId?: string;
 
   @IsOptional()
   @IsMongoId()

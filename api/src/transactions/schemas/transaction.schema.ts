@@ -22,13 +22,28 @@ export class Transaction {
   @Prop({ required: true })
   date!: Date;
 
-  /** Income: receiving account. Expense: paying account. Transfer: origin. */
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Account', required: true })
-  accountId!: Types.ObjectId;
+  /**
+   * Income: receiving account. Expense: paying account (absent when paid with
+   * a credit card). Transfer: origin.
+   */
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Account' })
+  accountId?: Types.ObjectId;
 
   /** Transfers only: destination account. */
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Account' })
   toAccountId?: Types.ObjectId;
+
+  /** Expenses only: the credit card that paid (instead of an account). */
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'CreditCard' })
+  creditCardId?: Types.ObjectId;
+
+  /** Transfers only: the credit card being paid (instead of toAccountId). */
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'CreditCard' })
+  toCreditCardId?: Types.ObjectId;
+
+  /** Set when the transaction is managed by an installment purchase. */
+  @Prop({ type: MongooseSchema.Types.ObjectId })
+  installmentPurchaseId?: Types.ObjectId;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Category' })
   categoryId?: Types.ObjectId;
