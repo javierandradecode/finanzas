@@ -64,7 +64,7 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 
 ## Fase 9 — Pantallas principales
 - [ ] Movimientos: listado con filtros y formulario (React Hook Form + Zod)
-- [ ] Cuentas y categorías
+- [x] Cuentas y categorías
 - [ ] Tarjetas y compras diferidas
 - [ ] Suscripciones
 - [ ] Presupuestos

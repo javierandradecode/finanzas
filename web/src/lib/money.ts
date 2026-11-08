@@ -3,6 +3,7 @@ export function formatMoney(cents: number, currency: string): string {
   return new Intl.NumberFormat('es', {
     style: 'currency',
     currency,
+    currencyDisplay: 'narrowSymbol',
     useGrouping: 'always',
   }).format(cents / 100)
 }
