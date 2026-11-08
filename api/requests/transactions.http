@@ -1,0 +1,90 @@
+@host = http://localhost:3000/api
+# Log in first (see auth.http) and paste the token here
+@token = PASTE_ACCESS_TOKEN_HERE
+# Ids from GET /accounts and GET /categories
+@accountA = PASTE_ACCOUNT_ID
+@accountB = PASTE_OTHER_ACCOUNT_ID
+@expenseCategory = PASTE_EXPENSE_CATEGORY_ID
+@incomeCategory = PASTE_INCOME_CATEGORY_ID
+@txId = PASTE_TRANSACTION_ID
+
+### Expense: 30.00 from account A (amountCents is an integer number of cents)
+POST {{host}}/transactions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "type": "expense", "amountCents": 3000, "date": "2026-03-15T12:00:00Z",
+  "accountId": "{{accountA}}", "categoryId": "{{expenseCategory}}", "note": "Super" }
+
+### Income: 50.00 into account A
+POST {{host}}/transactions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "type": "income", "amountCents": 5000, "date": "2026-03-16T09:00:00Z",
+  "accountId": "{{accountA}}", "categoryId": "{{incomeCategory}}" }
+
+### Transfer: 20.00 from A to B (no category)
+POST {{host}}/transactions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "type": "transfer", "amountCents": 2000, "date": "2026-03-17T09:00:00Z",
+  "accountId": "{{accountA}}", "toAccountId": "{{accountB}}" }
+
+### Edit the amount (balance moves by the difference)
+PATCH {{host}}/transactions/{{txId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "amountCents": 4500 }
+
+### Move the transaction to another account
+PATCH {{host}}/transactions/{{txId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "accountId": "{{accountB}}" }
+
+### Turn an expense into a transfer (null clears the category)
+PATCH {{host}}/transactions/{{txId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "type": "transfer", "toAccountId": "{{accountB}}", "categoryId": null }
+
+### Delete (204, reverts the balances)
+DELETE {{host}}/transactions/{{txId}}
+Authorization: Bearer {{token}}
+
+### List: everything (page 1, 20 per page)
+GET {{host}}/transactions
+Authorization: Bearer {{token}}
+
+### List: March 2026 only (a date-only `to` covers the whole day, UTC)
+GET {{host}}/transactions?from=2026-03-01&to=2026-03-31
+Authorization: Bearer {{token}}
+
+### List: expenses of one account, page 2, 10 per page
+GET {{host}}/transactions?type=expense&accountId={{accountA}}&page=2&limit=10
+Authorization: Bearer {{token}}
+
+### List: by category
+GET {{host}}/transactions?categoryId={{expenseCategory}}
+Authorization: Bearer {{token}}
+
+### Invalid id (expects 400)
+GET {{host}}/transactions/abc
+Authorization: Bearer {{token}}
+
+### limit above 100 (expects 400)
+GET {{host}}/transactions?limit=101
+Authorization: Bearer {{token}}
+
+### Transfer to the same account (expects 400)
+POST {{host}}/transactions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "type": "transfer", "amountCents": 100, "date": "2026-03-17T09:00:00Z",
+  "accountId": "{{accountA}}", "toAccountId": "{{accountA}}" }
