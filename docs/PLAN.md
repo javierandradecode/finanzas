@@ -66,7 +66,7 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 - [x] Movimientos: listado con filtros y formulario (React Hook Form + Zod)
 - [x] Cuentas y categorías
 - [x] Tarjetas y compras diferidas
-- [ ] Suscripciones
+- [x] Suscripciones
 - [ ] Presupuestos
 
 ## Fase 10 — Dashboard
