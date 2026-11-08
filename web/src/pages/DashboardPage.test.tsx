@@ -112,6 +112,30 @@ describe('DashboardPage', () => {
     })
   })
 
+  it('dims the old numbers while the new month is loading', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((r) => (release = r))
+    routeFetch({
+      ...routes(),
+      'GET /reports/summary?month=2026-10': async () => {
+        await gate
+        return jsonResponse(200, summary('2026-10'))
+      },
+    })
+    renderPage()
+    const cards = (await screen.findByTestId('card-balance')).closest('[aria-busy]') as HTMLElement
+    expect(cards).toHaveAttribute('aria-busy', 'false')
+    await userEvent.click(screen.getByRole('button', { name: 'Mes anterior' }))
+    await waitFor(() =>
+      expect((screen.getByTestId('card-balance').closest('[aria-busy]') as HTMLElement)).toHaveAttribute('aria-busy', 'true'),
+    )
+    expect(screen.getByTestId('card-balance').closest('[aria-busy]')).toHaveClass('opacity-50')
+    release()
+    await waitFor(() =>
+      expect(screen.getByTestId('card-balance').closest('[aria-busy]')).toHaveAttribute('aria-busy', 'false'),
+    )
+  })
+
   it('a failing report only breaks its own panel', async () => {
     routeFetch({
       ...routes(),

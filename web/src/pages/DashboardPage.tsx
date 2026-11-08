@@ -12,6 +12,7 @@ import { SpendingDonut } from '@/features/dashboard/SpendingDonut'
 import { SummaryCards } from '@/features/dashboard/SummaryCards'
 import { UpcomingPayments } from '@/features/dashboard/UpcomingPayments'
 import { monthDateRange, monthFromSearch } from '@/lib/months'
+import { cn } from '@/lib/utils'
 
 export function DashboardPage() {
   const currency = useAuth().user?.currency ?? 'USD'
@@ -84,10 +85,21 @@ function Async<T>({
   query,
   children,
 }: {
-  query: { data: T | undefined; isPending: boolean; error: Error | null }
+  query: { data: T | undefined; isPlaceholderData: boolean; error: Error | null }
   children: (data: T) => ReactNode
 }) {
-  if (query.data !== undefined) return <>{children(query.data)}</>
+  if (query.data !== undefined) {
+    // While another month loads we keep showing the old numbers, but dimmed so
+    // nobody reads them as the new month's.
+    return (
+      <div
+        aria-busy={query.isPlaceholderData}
+        className={cn('transition-opacity', query.isPlaceholderData && 'opacity-50')}
+      >
+        {children(query.data)}
+      </div>
+    )
+  }
   if (query.error) {
     return (
       <p role="alert" className="text-sm text-destructive">
