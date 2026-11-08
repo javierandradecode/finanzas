@@ -1,5 +1,6 @@
 import { AccountSchema } from '../accounts/schemas/account.schema';
 import { CategorySchema } from '../categories/schemas/category.schema';
+import { CreditCardSchema } from '../credit-cards/schemas/credit-card.schema';
 import { TransactionSchema } from '../transactions/schemas/transaction.schema';
 
 /**
@@ -10,6 +11,7 @@ describe('id fields are ObjectId paths', () => {
   it.each([
     ['Account', AccountSchema, ['userId']],
     ['Category', CategorySchema, ['userId']],
+    ['CreditCard', CreditCardSchema, ['userId']],
     [
       'Transaction',
       TransactionSchema,
