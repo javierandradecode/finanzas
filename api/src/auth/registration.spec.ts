@@ -48,7 +48,7 @@ describe('closing registration (ALLOW_REGISTRATION=false)', () => {
       .post('/api/auth/register')
       .send(body);
     expect(res.status).toBe(403);
-    expect(res.body.message).toBe('Registration is closed');
+    expect(res.body).toMatchObject({ message: 'Registration is closed' });
     expect(auth.register).not.toHaveBeenCalled();
     await app.close();
   });
