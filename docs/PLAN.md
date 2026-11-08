@@ -57,10 +57,10 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 - [x] Endpoint de resumen para el dashboard
 
 ## Fase 8 — Base del frontend
-- [ ] Crear proyecto React + Vite + TypeScript en `web/`
-- [ ] Tailwind + shadcn/ui, React Router, TanStack Query
-- [ ] Cliente HTTP con el token JWT
-- [ ] Páginas de login y registro, rutas protegidas, layout con menú
+- [x] Crear proyecto React + Vite + TypeScript en `web/`
+- [x] Tailwind + shadcn/ui, React Router, TanStack Query
+- [x] Cliente HTTP con el token JWT
+- [x] Páginas de login y registro, rutas protegidas, layout con menú
 
 ## Fase 9 — Pantallas principales
 - [ ] Movimientos: listado con filtros y formulario (React Hook Form + Zod)
