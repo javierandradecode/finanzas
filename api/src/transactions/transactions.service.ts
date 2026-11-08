@@ -25,6 +25,7 @@ import { assertValidShape, TxShape } from './transaction-shape';
 export type CreateTransactionInput = CreateTransactionDto & {
   source?: TxSource;
   installmentPurchaseId?: string;
+  subscriptionId?: string;
 };
 
 type Ref = Types.ObjectId | string | null | undefined;
@@ -150,6 +151,7 @@ export class TransactionsService {
           note: input.note,
           source: input.source,
           installmentPurchaseId: optOid(input.installmentPurchaseId),
+          subscriptionId: optOid(input.subscriptionId),
         },
       ],
       { session },
@@ -281,7 +283,7 @@ export class TransactionsService {
    * References the transaction already had (`before`) are not re-checked for
    * being active, so old transactions stay editable after archiving.
    */
-  private async assertReferences(
+  async assertReferences(
     userId: string,
     after: TxShape,
     before: TxShape | null,
