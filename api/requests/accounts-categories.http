@@ -1,0 +1,95 @@
+@host = http://localhost:3000/api
+# Log in first (see auth.http) and paste the token here
+@token = PASTE_ACCESS_TOKEN_HERE
+# Ids returned by the create requests below
+@accountId = PASTE_ACCOUNT_ID
+@categoryId = PASTE_CATEGORY_ID
+@subId = PASTE_SUBCATEGORY_ID
+
+### Create account (balance 1500.50 USD = 150050 cents)
+POST {{host}}/accounts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "type": "checking", "name": "Banco", "initialBalanceCents": 150050 }
+
+### List accounts
+GET {{host}}/accounts
+Authorization: Bearer {{token}}
+
+### List including archived
+GET {{host}}/accounts?includeArchived=true
+Authorization: Bearer {{token}}
+
+### Update account (balanceCents is ignored)
+PATCH {{host}}/accounts/{{accountId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Banco principal", "balanceCents": 999 }
+
+### Archive account (204)
+DELETE {{host}}/accounts/{{accountId}}
+Authorization: Bearer {{token}}
+
+### Restore account
+PATCH {{host}}/accounts/{{accountId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "isArchived": false }
+
+### Invalid id (expects 400)
+GET {{host}}/accounts/abc
+Authorization: Bearer {{token}}
+
+### Duplicate name with different case (expects 409)
+POST {{host}}/accounts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "type": "cash", "name": "BANCO PRINCIPAL" }
+
+### List categories (14 defaults)
+GET {{host}}/categories
+Authorization: Bearer {{token}}
+
+### List only income categories
+GET {{host}}/categories?type=income
+Authorization: Bearer {{token}}
+
+### Create category
+POST {{host}}/categories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "type": "expense", "name": "Mascotas", "icon": "paw-print", "color": "#a855f7" }
+
+### Update category
+PATCH {{host}}/categories/{{categoryId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Mascotas y veterinario" }
+
+### Add subcategory
+POST {{host}}/categories/{{categoryId}}/subcategories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Veterinario" }
+
+### Rename subcategory
+PATCH {{host}}/categories/{{categoryId}}/subcategories/{{subId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Consultas" }
+
+### Archive subcategory (204)
+DELETE {{host}}/categories/{{categoryId}}/subcategories/{{subId}}
+Authorization: Bearer {{token}}
+
+### Archive category (204)
+DELETE {{host}}/categories/{{categoryId}}
+Authorization: Bearer {{token}}

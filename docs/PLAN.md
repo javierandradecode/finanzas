@@ -24,9 +24,9 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 - [x] Probar con Postman/Insomnia o un archivo `.http`
 
 ## Fase 3 — Cuentas y categorías
-- [ ] CRUD de `accounts`
-- [ ] CRUD de `categories` con subcategorías embebidas
-- [ ] Todo filtrado por usuario
+- [x] CRUD de `accounts`
+- [x] CRUD de `categories` con subcategorías embebidas
+- [x] Todo filtrado por usuario
 
 ## Fase 4 — Movimientos
 - [ ] CRUD de `transactions` (ingreso, gasto, transferencia entre cuentas)
