@@ -43,9 +43,9 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 - [x] Tests del cálculo de cuotas y períodos
 
 ## Fase 6 — Suscripciones
-- [ ] CRUD de `subscriptions` (frecuencia mensual, anual, etc.)
-- [ ] Tarea diaria con `@nestjs/schedule` que genera el movimiento cuando vence
-- [ ] Endpoint de próximos vencimientos
+- [x] CRUD de `subscriptions` (frecuencia mensual, anual, etc.)
+- [x] Tarea diaria con `@nestjs/schedule` que genera el movimiento cuando vence
+- [x] Endpoint de próximos vencimientos
 
 ## Fase 7 — Presupuestos y reportes
 - [ ] CRUD de `budgets` por categoría y mes
