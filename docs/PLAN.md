@@ -48,13 +48,13 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 - [x] Endpoint de próximos vencimientos
 
 ## Fase 7 — Presupuestos y reportes
-- [ ] CRUD de `budgets` por categoría y mes
-- [ ] Reportes con aggregation pipeline:
+- [x] CRUD de `budgets` por categoría y mes
+- [x] Reportes con aggregation pipeline:
   - gasto por categoría en un rango
   - ingresos vs gastos por mes
   - presupuesto vs gastado
   - deuda total en tarjetas y pagos proyectados
-- [ ] Endpoint de resumen para el dashboard
+- [x] Endpoint de resumen para el dashboard
 
 ## Fase 8 — Base del frontend
 - [ ] Crear proyecto React + Vite + TypeScript en `web/`

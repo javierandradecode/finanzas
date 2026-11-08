@@ -1,0 +1,97 @@
+@host = http://localhost:3000/api
+# Log in first (see auth.http) and paste the token here
+@token = PASTE_ACCESS_TOKEN_HERE
+# Ids from GET /categories (expense categories for budgets)
+@foodCategory = PASTE_EXPENSE_CATEGORY_ID
+@budgetId = PASTE_BUDGET_ID
+
+########## Budgets ##########
+
+### Budget: at most 400.00 on this category in March 2026 (limitCents = 40000)
+POST {{host}}/budgets
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "categoryId": "{{foodCategory}}", "month": "2026-03", "limitCents": 40000 }
+
+### Budgets of a month (defaults to the current month)
+GET {{host}}/budgets?month=2026-03
+Authorization: Bearer {{token}}
+
+### Change the limit
+PATCH {{host}}/budgets/{{budgetId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "limitCents": 45000 }
+
+### Copy every budget of March into April (existing ones and archived categories are skipped)
+POST {{host}}/budgets/copy
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "from": "2026-03", "to": "2026-04" }
+
+### Delete (204)
+DELETE {{host}}/budgets/{{budgetId}}
+Authorization: Bearer {{token}}
+
+### Same category and month twice (expects 409)
+POST {{host}}/budgets
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "categoryId": "{{foodCategory}}", "month": "2026-03", "limitCents": 1000 }
+
+### Copy a month onto itself (expects 400)
+POST {{host}}/budgets/copy
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "from": "2026-03", "to": "2026-03" }
+
+########## Reports ##########
+
+### Spending by category in a range (a date-only `to` covers the whole day, UTC)
+GET {{host}}/reports/spending-by-category?from=2026-03-01&to=2026-03-31
+Authorization: Bearer {{token}}
+
+### Spending by category, current month
+GET {{host}}/reports/spending-by-category
+Authorization: Bearer {{token}}
+
+### Income vs expenses per month (default: last 12 months; max 60)
+GET {{host}}/reports/income-vs-expenses?from=2026-01&to=2026-04
+Authorization: Bearer {{token}}
+
+### Budget vs what was spent
+GET {{host}}/reports/budget-vs-spent?month=2026-03
+Authorization: Bearer {{token}}
+
+### Card debt and projected installment payments
+GET {{host}}/reports/card-debt?months=12
+Authorization: Bearer {{token}}
+
+### Dashboard summary
+GET {{host}}/reports/summary?month=2026-03
+Authorization: Bearer {{token}}
+
+### from after to (expects 400)
+GET {{host}}/reports/spending-by-category?from=2026-04-01&to=2026-03-01
+Authorization: Bearer {{token}}
+
+### Impossible date (expects 400)
+GET {{host}}/reports/spending-by-category?from=2026-02-31
+Authorization: Bearer {{token}}
+
+### Bad month (expects 400)
+GET {{host}}/reports/budget-vs-spent?month=2026-13
+Authorization: Bearer {{token}}
+
+### More than 60 months (expects 400)
+GET {{host}}/reports/income-vs-expenses?from=2021-01&to=2026-01
+Authorization: Bearer {{token}}
+
+### months out of range (expects 400)
+GET {{host}}/reports/card-debt?months=37
+Authorization: Bearer {{token}}
