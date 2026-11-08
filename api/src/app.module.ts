@@ -14,6 +14,7 @@ import { ReportsModule } from './reports/reports.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { HealthModule } from './health/health.module';
+import { SecurityModule } from './security/security.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { HealthModule } from './health/health.module';
         uri: config.getOrThrow<string>('MONGODB_URI'),
       }),
     }),
+    SecurityModule,
     HealthModule,
     UsersModule,
     CategoriesModule,
