@@ -18,10 +18,10 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 - [x] Utilidad de dinero (centavos ↔ formato)
 
 ## Fase 2 — Usuarios y autenticación
-- [ ] Módulo `users` (schema, service)
-- [ ] Módulo `auth`: registro, login, JWT, guard global y decorador `@CurrentUser()`
-- [ ] Al registrarse se crean categorías por defecto
-- [ ] Probar con Postman/Insomnia o un archivo `.http`
+- [x] Módulo `users` (schema, service)
+- [x] Módulo `auth`: registro, login, JWT, guard global y decorador `@CurrentUser()`
+- [x] Al registrarse se crean categorías por defecto
+- [x] Probar con Postman/Insomnia o un archivo `.http`
 
 ## Fase 3 — Cuentas y categorías
 - [ ] CRUD de `accounts`
