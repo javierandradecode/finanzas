@@ -160,6 +160,19 @@ describe('TransactionDialog', () => {
     expect(screen.getByLabelText('Categoría')).toHaveValue('')
   })
 
+  it('a category from the old type is not submitted after switching type', async () => {
+    const calls = routeFetch({ ...lists, 'POST /transactions': () => jsonResponse(201, expenseTx) })
+    renderDialog()
+    await waitLoaded()
+    await userEvent.type(screen.getByLabelText('Monto'), '10')
+    await pick('Categoría', 'c1')
+    await press('Ingreso')
+    await pick('Cuenta', 'account:a1')
+    await save()
+    expect(await screen.findByText('Elige una categoría')).toBeInTheDocument()
+    expect(calls.some((c) => c.method === 'POST')).toBe(false)
+  })
+
   it('lists only the subcategories of the chosen category (active ones)', async () => {
     routeFetch(lists)
     renderDialog()
