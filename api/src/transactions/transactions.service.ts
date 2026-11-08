@@ -12,7 +12,7 @@ import { definedOnly } from '../common/utils/defined-only';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { Transaction, TransactionDocument } from './schemas/transaction.schema';
-import { netEffects, TxFinancials } from './transaction-effects';
+import { netEffects } from './transaction-effects';
 import { assertValidShape, TxShape } from './transaction-shape';
 
 const oid = (id: string) => new Types.ObjectId(id);
