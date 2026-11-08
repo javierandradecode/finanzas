@@ -63,7 +63,7 @@ const asA = (
 const created = async (res: Response | Promise<Response>) => {
   const r = await res;
   expect([200, 201]).toContain(r.status);
-  return r.body;
+  return r.body as Record<string, any>;
 };
 
 async function seedUser(c: Pick<Ctx, 'h'>, token: string, tag: string) {
@@ -188,7 +188,7 @@ async function seedUser(c: Pick<Ctx, 'h'>, token: string, tag: string) {
 /** Everything A can read, to prove it did not change. */
 async function snapshot(c: Ctx) {
   const get = async (path: string) =>
-    (await asA(c, 'get', path).expect(200)).body;
+    (await asA(c, 'get', path).expect(200)).body as Record<string, any>;
   return {
     accounts: await get('/accounts?includeArchived=true'),
     categories: await get('/categories?includeArchived=true'),
@@ -254,7 +254,7 @@ const CASES: Case[] = [
   empty(
     'GET /api/accounts',
     (c) => asE(c, 'get', '/accounts?includeArchived=true'),
-    (body, c) => {
+    (body) => {
       expect(body).toEqual([]);
     },
   ),
@@ -325,7 +325,7 @@ const CASES: Case[] = [
   empty(
     'GET /api/credit-cards',
     (c) => asE(c, 'get', '/credit-cards?includeArchived=true'),
-    (body, c) => {
+    (body) => {
       expect(body).toEqual([]);
     },
   ),
