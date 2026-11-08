@@ -8,6 +8,7 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, QueryFilter, Types } from 'mongoose';
 import { AccountsService } from '../accounts/accounts.service';
 import { CategoriesService } from '../categories/categories.service';
+import { endOfRange } from '../common/utils/date-range';
 import { definedOnly } from '../common/utils/defined-only';
 import { CreditCardsService } from '../credit-cards/credit-cards.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
@@ -33,12 +34,6 @@ type Ref = Types.ObjectId | string | null | undefined;
 const oid = (id: string) => new Types.ObjectId(id);
 const optOid = (id?: string | null) => (id ? oid(id) : undefined);
 const str = (id: Ref) => (id ? String(id) : null);
-
-/** A date-only `to` ("2026-03-31") means the end of that day in UTC. */
-const endOfRange = (to: string): Date =>
-  /^\d{4}-\d{2}-\d{2}$/.test(to)
-    ? new Date(`${to}T23:59:59.999Z`)
-    : new Date(to);
 
 /** The fields of a transaction that decide its shape and its financial effect. */
 function shapeOf(doc: {
