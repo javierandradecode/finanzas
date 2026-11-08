@@ -1,0 +1,39 @@
+@host = http://localhost:3000/api
+
+### Register
+POST {{host}}/auth/register
+Content-Type: application/json
+
+{ "email": "ana@example.com", "password": "password123", "name": "Ana" }
+
+### Login (copy accessToken into @token below)
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{ "email": "ana@example.com", "password": "password123" }
+
+###
+@token = PASTE_ACCESS_TOKEN_HERE
+
+### Me (expects 200)
+GET {{host}}/auth/me
+Authorization: Bearer {{token}}
+
+### Me without token (expects 401)
+GET {{host}}/auth/me
+
+### Me with tampered token (expects 401)
+GET {{host}}/auth/me
+Authorization: Bearer {{token}}x
+
+### Duplicate register with different case (expects 409)
+POST {{host}}/auth/register
+Content-Type: application/json
+
+{ "email": " ANA@example.com ", "password": "password123", "name": "Ana" }
+
+### Short password + extra field (expects 400)
+POST {{host}}/auth/register
+Content-Type: application/json
+
+{ "email": "bob@example.com", "password": "short", "name": "Bob", "role": "admin" }
