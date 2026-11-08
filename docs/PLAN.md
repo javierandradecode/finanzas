@@ -10,12 +10,12 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 - [ ] Crear repositorio en GitHub (privado)
 
 ## Fase 1 — Base del backend
-- [ ] Crear proyecto NestJS en `api/` con TypeScript strict, ESLint y Prettier
-- [ ] `@nestjs/config` con `.env` y `.env.example` (MONGODB_URI, JWT_SECRET, PORT)
-- [ ] Conexión a MongoDB con `@nestjs/mongoose`
-- [ ] `ValidationPipe` global, filtro de excepciones, prefijo `/api`, CORS para el frontend
-- [ ] Endpoint `GET /api/health`
-- [ ] Utilidad de dinero (centavos ↔ formato)
+- [x] Crear proyecto NestJS en `api/` con TypeScript strict, ESLint y Prettier
+- [x] `@nestjs/config` con `.env` y `.env.example` (MONGODB_URI, JWT_SECRET, PORT)
+- [x] Conexión a MongoDB con `@nestjs/mongoose`
+- [x] `ValidationPipe` global, filtro de excepciones, prefijo `/api`, CORS para el frontend
+- [x] Endpoint `GET /api/health`
+- [x] Utilidad de dinero (centavos ↔ formato)
 
 ## Fase 2 — Usuarios y autenticación
 - [ ] Módulo `users` (schema, service)
