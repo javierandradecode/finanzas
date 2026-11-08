@@ -8,6 +8,7 @@ import { PlaceholderPage } from '@/pages/PlaceholderPage'
 import { AccountsPage } from '@/pages/AccountsPage'
 import { CardDetailPage } from '@/pages/CardDetailPage'
 import { CardsPage } from '@/pages/CardsPage'
+import { BudgetsPage } from '@/pages/BudgetsPage'
 import { CategoriesPage } from '@/pages/CategoriesPage'
 import { SubscriptionsPage } from '@/pages/SubscriptionsPage'
 import { TransactionsPage } from '@/pages/TransactionsPage'
@@ -18,6 +19,7 @@ const PAGES: Record<string, ReactNode> = {
   '/cuentas': <AccountsPage />,
   '/categorias': <CategoriesPage />,
   '/tarjetas': <CardsPage />,
+  '/presupuestos': <BudgetsPage />,
   '/suscripciones': <SubscriptionsPage />,
   '/movimientos': <TransactionsPage />,
 }
