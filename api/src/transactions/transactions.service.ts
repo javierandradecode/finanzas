@@ -5,10 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import { Connection, Model, Types } from 'mongoose';
+import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { AccountsService } from '../accounts/accounts.service';
 import { CategoriesService } from '../categories/categories.service';
+import { definedOnly } from '../common/utils/defined-only';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { Transaction, TransactionDocument } from './schemas/transaction.schema';
 import { netEffects, TxFinancials } from './transaction-effects';
 import { assertValidShape, TxShape } from './transaction-shape';
@@ -84,20 +86,89 @@ export class TransactionsService {
     });
   }
 
+  /**
+   * Edits any field. The previous state is read inside the transaction, so a
+   * concurrent edit conflicts and is retried instead of corrupting balances.
+   * Balances move by (effect of new state) - (effect of old state).
+   */
+  async update(
+    userId: string,
+    id: string,
+    dto: UpdateTransactionDto,
+  ): Promise<TransactionDocument> {
+    return this.connection.transaction(async (session) => {
+      const doc = await this.loadForUpdate(userId, id, session);
+      const before = shapeOf(doc);
+      const patch = definedOnly(dto);
+
+      const after: TxShape = { ...before };
+      if (patch.type !== undefined) after.type = patch.type;
+      if (patch.amountCents !== undefined)
+        after.amountCents = patch.amountCents;
+      if (patch.accountId !== undefined) after.accountId = patch.accountId;
+      if (patch.toAccountId !== undefined)
+        after.toAccountId = patch.toAccountId;
+      if (patch.categoryId !== undefined) after.categoryId = patch.categoryId;
+      if (patch.subcategoryId !== undefined) {
+        after.subcategoryId = patch.subcategoryId;
+      } else if (
+        patch.categoryId !== undefined &&
+        patch.categoryId !== before.categoryId
+      ) {
+        after.subcategoryId = null; // the old subcategory belongs to the old category
+      }
+
+      assertValidShape(after);
+      await this.assertReferences(userId, after, before);
+
+      doc.set({
+        type: after.type,
+        amountCents: after.amountCents,
+        accountId: oid(after.accountId),
+        toAccountId: after.toAccountId ? oid(after.toAccountId) : undefined,
+        categoryId: after.categoryId ? oid(after.categoryId) : undefined,
+        subcategoryId: after.subcategoryId
+          ? oid(after.subcategoryId)
+          : undefined,
+        ...(patch.date !== undefined && { date: patch.date }),
+        ...(patch.note !== undefined && { note: patch.note ?? undefined }),
+      });
+      await doc.save({ session });
+      await this.accounts.applyDeltas(
+        userId,
+        netEffects(before, after),
+        session,
+      );
+      return doc;
+    });
+  }
+
   async remove(userId: string, id: string): Promise<void> {
-    const doc = await this.findOne(userId, id);
-    const before: TxFinancials = shapeOf(doc);
     await this.connection.transaction(async (session) => {
+      const doc = await this.loadForUpdate(userId, id, session);
       await this.model.deleteOne(
         { _id: doc._id, userId: oid(userId) },
         { session },
       );
       await this.accounts.applyDeltas(
         userId,
-        netEffects(before, null),
+        netEffects(shapeOf(doc), null),
         session,
       );
     });
+  }
+
+  private async loadForUpdate(
+    userId: string,
+    id: string,
+    session: ClientSession,
+  ): Promise<TransactionDocument> {
+    const doc = await this.model
+      .findOne({ _id: oid(id), userId: oid(userId) })
+      .session(session)
+      .exec();
+    if (!doc) throw new NotFoundException('Transaction not found');
+    return doc;
   }
 
   /**

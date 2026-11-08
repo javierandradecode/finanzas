@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { MongooseModule, getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
+import { plainToInstance } from 'class-transformer';
 import { Model, Types } from 'mongoose';
 import {
   InMemoryMongo,
@@ -19,6 +20,7 @@ import {
   CategorySchema,
 } from '../categories/schemas/category.schema';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { Transaction, TransactionSchema } from './schemas/transaction.schema';
 import { TransactionsService } from './transactions.service';
 
@@ -231,6 +233,161 @@ describe('TransactionsService (integration)', () => {
       );
       expect(await balance(A)).toBe(5_000);
       expect(await txModel.countDocuments({})).toBe(5);
+    });
+  });
+
+  describe('update', () => {
+    const upd = (over: Record<string, unknown>) =>
+      plainToInstance(UpdateTransactionDto, over);
+    const makeExpense = (over: Record<string, unknown> = {}) =>
+      service.create(String(u1), dto(over));
+
+    it('changing only the amount adjusts the balance by the difference', async () => {
+      const tx = await makeExpense();
+      await service.update(
+        String(u1),
+        String(tx._id),
+        upd({ amountCents: 5000 }),
+      );
+      expect(await balance(A)).toBe(5_000);
+    });
+
+    it('changing only the note leaves balances and other fields untouched', async () => {
+      const tx = await makeExpense();
+      const updated = await service.update(
+        String(u1),
+        String(tx._id),
+        upd({ note: 'hola' }),
+      );
+      expect(updated.note).toBe('hola');
+      expect(updated.amountCents).toBe(3000);
+      expect(updated.type).toBe('expense');
+      expect(String(updated.accountId)).toBe(A);
+      expect(String(updated.categoryId)).toBe(expenseCat);
+      expect(await balance(A)).toBe(7_000);
+    });
+
+    it('expense -> income swings the balance by twice the amount', async () => {
+      const tx = await makeExpense();
+      await service.update(
+        String(u1),
+        String(tx._id),
+        upd({ type: 'income', categoryId: incomeCat }),
+      );
+      expect(await balance(A)).toBe(13_000);
+    });
+
+    it('moving to another account undoes the old effect and applies the new', async () => {
+      const tx = await makeExpense();
+      await service.update(String(u1), String(tx._id), upd({ accountId: B }));
+      expect(await balance(A)).toBe(10_000);
+      expect(await balance(B)).toBe(-3_000);
+    });
+
+    it('changing a transfer destination moves only the credit', async () => {
+      const C = String(
+        (
+          await accountModel.create({
+            userId: u1,
+            type: 'cash',
+            name: 'C',
+            balanceCents: 0,
+          })
+        )._id,
+      );
+      const tx = await service.create(
+        String(u1),
+        dto({
+          type: 'transfer',
+          amountCents: 2000,
+          toAccountId: B,
+          categoryId: undefined,
+        }),
+      );
+      await service.update(String(u1), String(tx._id), upd({ toAccountId: C }));
+      expect(await balance(A)).toBe(8_000);
+      expect(await balance(B)).toBe(0);
+      expect(await balance(C)).toBe(2_000);
+    });
+
+    it('expense -> transfer (clearing the category) credits the destination', async () => {
+      const tx = await makeExpense();
+      const updated = await service.update(
+        String(u1),
+        String(tx._id),
+        upd({ type: 'transfer', toAccountId: B, categoryId: null }),
+      );
+      expect(updated.categoryId).toBeUndefined();
+      expect(await balance(A)).toBe(7_000);
+      expect(await balance(B)).toBe(3_000);
+    });
+
+    it('transfer -> expense without a category is rejected and changes nothing', async () => {
+      const tx = await service.create(
+        String(u1),
+        dto({ type: 'transfer', toAccountId: B, categoryId: undefined }),
+      );
+      await expect(
+        service.update(
+          String(u1),
+          String(tx._id),
+          upd({ type: 'expense', toAccountId: null }),
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(await balance(A)).toBe(7_000);
+      expect(await balance(B)).toBe(3_000);
+      expect((await txModel.findById(tx._id).lean())!.type).toBe('transfer');
+    });
+
+    it('changing the category without a subcategory clears the old subcategory', async () => {
+      const tx = await makeExpense({ subcategoryId: expenseSub });
+      const updated = await service.update(
+        String(u1),
+        String(tx._id),
+        upd({ categoryId: otherExpenseCat }),
+      );
+      expect(String(updated.categoryId)).toBe(otherExpenseCat);
+      expect(updated.subcategoryId).toBeUndefined();
+    });
+
+    it('moving to an archived account is rejected, but old references stay editable', async () => {
+      const tx = await makeExpense();
+      await expect(
+        service.update(
+          String(u1),
+          String(tx._id),
+          upd({ accountId: archivedAcc }),
+        ),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(await balance(A)).toBe(7_000);
+
+      await accountModel.updateOne({ _id: A }, { isArchived: true });
+      const updated = await service.update(
+        String(u1),
+        String(tx._id),
+        upd({ note: 'ok' }),
+      );
+      expect(updated.note).toBe('ok');
+    });
+
+    it("another user's transaction is 404", async () => {
+      const tx = await makeExpense();
+      await expect(
+        service.update(String(u2), String(tx._id), upd({ amountCents: 1 })),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(await balance(A)).toBe(7_000);
+    });
+
+    it('rolls back the document and balances when applying deltas fails', async () => {
+      const tx = await makeExpense();
+      jest
+        .spyOn(accounts, 'applyDeltas')
+        .mockRejectedValueOnce(new Error('boom'));
+      await expect(
+        service.update(String(u1), String(tx._id), upd({ amountCents: 9000 })),
+      ).rejects.toThrow('boom');
+      expect((await txModel.findById(tx._id).lean())!.amountCents).toBe(3000);
+      expect(await balance(A)).toBe(7_000);
     });
   });
 
