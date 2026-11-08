@@ -1,0 +1,97 @@
+@host = http://localhost:3000/api
+# Log in first (see auth.http) and paste the token here
+@token = PASTE_ACCESS_TOKEN_HERE
+# Ids from GET /accounts, GET /credit-cards, GET /categories
+@accountId = PASTE_ACCOUNT_ID
+@cardId = PASTE_CARD_ID
+@categoryId = PASTE_EXPENSE_CATEGORY_ID
+@subscriptionId = PASTE_SUBSCRIPTION_ID
+
+### Monthly subscription paid from an account (amountCents = 15.00)
+POST {{host}}/subscriptions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Netflix", "amountCents": 1500, "frequency": "monthly", "nextDate": "2026-08-05",
+  "accountId": "{{accountId}}", "categoryId": "{{categoryId}}" }
+
+### Weekly subscription paid with a credit card
+POST {{host}}/subscriptions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Gimnasio", "amountCents": 500, "frequency": "weekly", "nextDate": "2026-10-25",
+  "creditCardId": "{{cardId}}", "categoryId": "{{categoryId}}" }
+
+### Yearly subscription (frequencies: weekly, monthly, quarterly, semiannual, yearly)
+POST {{host}}/subscriptions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Dominio", "amountCents": 1800, "frequency": "yearly", "nextDate": "2027-01-31",
+  "accountId": "{{accountId}}", "categoryId": "{{categoryId}}" }
+
+### List subscriptions
+GET {{host}}/subscriptions
+Authorization: Bearer {{token}}
+
+### One subscription (shows lastError if the last charge failed)
+GET {{host}}/subscriptions/{{subscriptionId}}
+Authorization: Bearer {{token}}
+
+### Charge everything that is due now (the daily job does this for everyone at 00:05 UTC)
+POST {{host}}/subscriptions/process-due
+Authorization: Bearer {{token}}
+
+### Upcoming charges, next 30 days (overdue = true when not charged yet)
+GET {{host}}/subscriptions/upcoming?days=30
+Authorization: Bearer {{token}}
+
+### Generated charges are normal expenses
+GET {{host}}/transactions?type=expense
+Authorization: Bearer {{token}}
+
+### Edit (changing nextDate also changes the day of the month it is charged on)
+PATCH {{host}}/subscriptions/{{subscriptionId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "amountCents": 2200 }
+
+### Pause (204)
+DELETE {{host}}/subscriptions/{{subscriptionId}}
+Authorization: Bearer {{token}}
+
+### Reactivate (a past nextDate jumps to the next one from today; the pause is not charged)
+PATCH {{host}}/subscriptions/{{subscriptionId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "active": true }
+
+### Switch the payer from account to card (null clears the other one)
+PATCH {{host}}/subscriptions/{{subscriptionId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "accountId": null, "creditCardId": "{{cardId}}" }
+
+### Account and card together (expects 400)
+POST {{host}}/subscriptions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Mala", "amountCents": 100, "frequency": "monthly", "nextDate": "2026-12-01",
+  "accountId": "{{accountId}}", "creditCardId": "{{cardId}}", "categoryId": "{{categoryId}}" }
+
+### Unknown frequency (expects 400)
+POST {{host}}/subscriptions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Mala", "amountCents": 100, "frequency": "daily", "nextDate": "2026-12-01",
+  "accountId": "{{accountId}}", "categoryId": "{{categoryId}}" }
+
+### days out of range (expects 400)
+GET {{host}}/subscriptions/upcoming?days=366
+Authorization: Bearer {{token}}
