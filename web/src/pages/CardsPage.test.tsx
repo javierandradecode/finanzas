@@ -210,6 +210,34 @@ describe('CardsPage', () => {
     expect(screen.getAllByText(/100,00/).length).toBeGreaterThan(0)
   })
 
+  it('hides months without installments and capitalizes only the first letter', async () => {
+    routeFetch({
+      [PROJECTION]: () =>
+        jsonResponse(200, [
+          ...projection,
+          { month: '2026-05', principalCents: 0, interestCents: 0, paymentCents: 0, count: 0 },
+        ]),
+      'GET /credit-cards': () => jsonResponse(200, [visa]),
+    })
+    renderPage()
+    await screen.findByText('marzo de 2026')
+    expect(screen.queryByText('mayo de 2026')).toBeNull()
+    expect(screen.getByText('marzo de 2026')).toHaveClass('first-letter:uppercase')
+    expect(screen.getByText('marzo de 2026')).not.toHaveClass('capitalize')
+  })
+
+  it('says so when every month is empty', async () => {
+    routeFetch({
+      [PROJECTION]: () =>
+        jsonResponse(200, [
+          { month: '2026-03', principalCents: 0, interestCents: 0, paymentCents: 0, count: 0 },
+        ]),
+      'GET /credit-cards': () => jsonResponse(200, [visa]),
+    })
+    renderPage()
+    expect(await screen.findByText('Sin cuotas pendientes.')).toBeInTheDocument()
+  })
+
   it('says so when no installments are pending', async () => {
     routeFetch({ ...base, 'GET /credit-cards': () => jsonResponse(200, [visa]) })
     renderPage()

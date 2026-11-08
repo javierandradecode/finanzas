@@ -7,7 +7,9 @@ import { formatMoney } from '@/lib/money'
 /** Installment payments due in the next 12 months, all cards together. */
 export function ProjectionPanel() {
   const currency = useAuth().user?.currency ?? 'USD'
-  const { data, isPending, error } = useProjection(12)
+  const { data: all, isPending, error } = useProjection(12)
+  // the API returns every month of the window, including those with nothing due
+  const data = all?.filter((m) => m.count > 0)
 
   return (
     <Card>
@@ -26,7 +28,7 @@ export function ProjectionPanel() {
           <ul className="divide-y text-sm">
             {data.map((m) => (
               <li key={m.month} className="flex items-center justify-between py-2">
-                <span className="capitalize">{formatMonth(m.month)}</span>
+                <span className="first-letter:uppercase">{formatMonth(m.month)}</span>
                 <span className="text-muted-foreground">
                   {m.count} {m.count === 1 ? 'cuota' : 'cuotas'}
                 </span>
