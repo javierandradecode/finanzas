@@ -67,7 +67,7 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 - [x] Cuentas y categorías
 - [x] Tarjetas y compras diferidas
 - [x] Suscripciones
-- [ ] Presupuestos
+- [x] Presupuestos
 
 ## Fase 10 — Dashboard
 - [ ] Tarjetas de resumen (saldo total, gastos del mes, deuda en tarjetas)
