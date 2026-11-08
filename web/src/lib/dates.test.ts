@@ -1,4 +1,4 @@
-import { formatDateUtc, monthRangeLocal, todayLocal } from './dates'
+import { formatDateUtc, formatMonth, monthRangeLocal, todayLocal } from './dates'
 
 describe('dates', () => {
   it('todayLocal uses the local calendar, not UTC', () => {
@@ -24,5 +24,12 @@ describe('dates', () => {
     expect(out).toContain('15')
     expect(out).toContain('2026')
     expect(formatDateUtc('2026-03-31T23:59:59.999Z')).toContain('31')
+  })
+})
+
+describe('formatMonth', () => {
+  it('writes a YYYY-MM key as a Spanish month and year (UTC)', () => {
+    expect(formatMonth('2026-03')).toBe('marzo de 2026')
+    expect(formatMonth('2026-12')).toBe('diciembre de 2026')
   })
 })

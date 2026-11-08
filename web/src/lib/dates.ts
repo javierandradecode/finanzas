@@ -30,3 +30,12 @@ export function isValidDateText(s: string): boolean {
   const d = new Date(`${s}T00:00:00Z`)
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s
 }
+
+/** "2026-03" → "marzo de 2026" (the keys the API uses for months are UTC). */
+export function formatMonth(key: string): string {
+  return new Intl.DateTimeFormat('es', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${key}-01T00:00:00Z`))
+}

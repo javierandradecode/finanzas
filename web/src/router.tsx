@@ -6,6 +6,7 @@ import { RequireAuth } from '@/features/auth/RequireAuth'
 import { LoginPage } from '@/pages/LoginPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 import { AccountsPage } from '@/pages/AccountsPage'
+import { CardsPage } from '@/pages/CardsPage'
 import { CategoriesPage } from '@/pages/CategoriesPage'
 import { TransactionsPage } from '@/pages/TransactionsPage'
 import { RegisterPage } from '@/pages/RegisterPage'
@@ -14,6 +15,7 @@ import { RegisterPage } from '@/pages/RegisterPage'
 const PAGES: Record<string, ReactNode> = {
   '/cuentas': <AccountsPage />,
   '/categorias': <CategoriesPage />,
+  '/tarjetas': <CardsPage />,
   '/movimientos': <TransactionsPage />,
 }
 
