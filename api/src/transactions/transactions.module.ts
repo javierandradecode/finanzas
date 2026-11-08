@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AccountsModule } from '../accounts/accounts.module';
 import { CategoriesModule } from '../categories/categories.module';
+import { CreditCardsModule } from '../credit-cards/credit-cards.module';
 import { Transaction, TransactionSchema } from './schemas/transaction.schema';
 import { TransactionsController } from './transactions.controller';
 import { TransactionsService } from './transactions.service';
@@ -13,8 +14,10 @@ import { TransactionsService } from './transactions.service';
     ]),
     AccountsModule,
     CategoriesModule,
+    CreditCardsModule,
   ],
   controllers: [TransactionsController],
   providers: [TransactionsService],
+  exports: [TransactionsService],
 })
 export class TransactionsModule {}

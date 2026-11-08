@@ -5,40 +5,58 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import { ClientSession, Connection, QueryFilter, Model, Types } from 'mongoose';
+import { ClientSession, Connection, Model, QueryFilter, Types } from 'mongoose';
 import { AccountsService } from '../accounts/accounts.service';
 import { CategoriesService } from '../categories/categories.service';
 import { definedOnly } from '../common/utils/defined-only';
+import { CreditCardsService } from '../credit-cards/credit-cards.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { ListTransactionsQuery, Page } from './dto/list-transactions.query';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
-import { Transaction, TransactionDocument } from './schemas/transaction.schema';
-import { netEffects } from './transaction-effects';
+import {
+  Transaction,
+  TransactionDocument,
+  TxSource,
+} from './schemas/transaction.schema';
+import { Effects, netEffects } from './transaction-effects';
 import { assertValidShape, TxShape } from './transaction-shape';
 
+/** What `createWithin` accepts: the public DTO plus fields only internal flows set. */
+export type CreateTransactionInput = CreateTransactionDto & {
+  source?: TxSource;
+  installmentPurchaseId?: string;
+};
+
+type Ref = Types.ObjectId | string | null | undefined;
+
 const oid = (id: string) => new Types.ObjectId(id);
+const optOid = (id?: string | null) => (id ? oid(id) : undefined);
+const str = (id: Ref) => (id ? String(id) : null);
 
 /** A date-only `to` ("2026-03-31") means the end of that day in UTC. */
 const endOfRange = (to: string): Date =>
   /^\d{4}-\d{2}-\d{2}$/.test(to)
     ? new Date(`${to}T23:59:59.999Z`)
     : new Date(to);
-const str = (id?: Types.ObjectId | string | null) => (id ? String(id) : null);
 
 /** The fields of a transaction that decide its shape and its financial effect. */
 function shapeOf(doc: {
   type: TxShape['type'];
   amountCents: number;
-  accountId: Types.ObjectId | string;
-  toAccountId?: Types.ObjectId | string | null;
-  categoryId?: Types.ObjectId | string | null;
-  subcategoryId?: Types.ObjectId | string | null;
+  accountId?: Ref;
+  toAccountId?: Ref;
+  creditCardId?: Ref;
+  toCreditCardId?: Ref;
+  categoryId?: Ref;
+  subcategoryId?: Ref;
 }): TxShape {
   return {
     type: doc.type,
     amountCents: doc.amountCents,
-    accountId: String(doc.accountId),
+    accountId: str(doc.accountId),
     toAccountId: str(doc.toAccountId),
+    creditCardId: str(doc.creditCardId),
+    toCreditCardId: str(doc.toCreditCardId),
     categoryId: str(doc.categoryId),
     subcategoryId: str(doc.subcategoryId),
   };
@@ -50,6 +68,7 @@ export class TransactionsService {
     @InjectModel(Transaction.name) private readonly model: Model<Transaction>,
     @InjectConnection() private readonly connection: Connection,
     private readonly accounts: AccountsService,
+    private readonly cards: CreditCardsService,
     private readonly categories: CategoriesService,
   ) {}
 
@@ -92,46 +111,57 @@ export class TransactionsService {
     return { items, total, page: q.page, limit: q.limit };
   }
 
-  async create(
+  create(
     userId: string,
     dto: CreateTransactionDto,
   ): Promise<TransactionDocument> {
-    const after = shapeOf(dto);
+    return this.connection.transaction((session) =>
+      this.createWithin(session, userId, dto),
+    );
+  }
+
+  /**
+   * Creates a transaction and applies its effect on balances/debts inside the
+   * caller's transaction (MongoDB does not nest transactions, so flows that
+   * create several documents pass their own session).
+   */
+  async createWithin(
+    session: ClientSession,
+    userId: string,
+    input: CreateTransactionInput,
+  ): Promise<TransactionDocument> {
+    const after = shapeOf(input);
     assertValidShape(after);
     await this.assertReferences(userId, after, null);
 
-    return this.connection.transaction(async (session) => {
-      const [doc] = await this.model.create(
-        [
-          {
-            userId: oid(userId),
-            type: dto.type,
-            amountCents: dto.amountCents,
-            date: dto.date,
-            accountId: oid(dto.accountId),
-            toAccountId: dto.toAccountId ? oid(dto.toAccountId) : undefined,
-            categoryId: dto.categoryId ? oid(dto.categoryId) : undefined,
-            subcategoryId: dto.subcategoryId
-              ? oid(dto.subcategoryId)
-              : undefined,
-            note: dto.note,
-          },
-        ],
-        { session },
-      );
-      await this.accounts.applyDeltas(
-        userId,
-        netEffects(null, after).accounts,
-        session,
-      );
-      return doc;
-    });
+    const [doc] = await this.model.create(
+      [
+        {
+          userId: oid(userId),
+          type: input.type,
+          amountCents: input.amountCents,
+          date: input.date,
+          accountId: optOid(input.accountId),
+          toAccountId: optOid(input.toAccountId),
+          creditCardId: optOid(input.creditCardId),
+          toCreditCardId: optOid(input.toCreditCardId),
+          categoryId: optOid(input.categoryId),
+          subcategoryId: optOid(input.subcategoryId),
+          note: input.note,
+          source: input.source,
+          installmentPurchaseId: optOid(input.installmentPurchaseId),
+        },
+      ],
+      { session },
+    );
+    await this.applyEffects(userId, netEffects(null, after), session);
+    return doc;
   }
 
   /**
    * Edits any field. The previous state is read inside the transaction, so a
    * concurrent edit conflicts and is retried instead of corrupting balances.
-   * Balances move by (effect of new state) - (effect of old state).
+   * Balances and debts move by (effect of new state) - (effect of old state).
    */
   async update(
     userId: string,
@@ -140,6 +170,7 @@ export class TransactionsService {
   ): Promise<TransactionDocument> {
     return this.connection.transaction(async (session) => {
       const doc = await this.loadForUpdate(userId, id, session);
+      this.assertNotManaged(doc);
       const before = shapeOf(doc);
       const patch = definedOnly(dto);
 
@@ -150,6 +181,10 @@ export class TransactionsService {
       if (patch.accountId !== undefined) after.accountId = patch.accountId;
       if (patch.toAccountId !== undefined)
         after.toAccountId = patch.toAccountId;
+      if (patch.creditCardId !== undefined)
+        after.creditCardId = patch.creditCardId;
+      if (patch.toCreditCardId !== undefined)
+        after.toCreditCardId = patch.toCreditCardId;
       if (patch.categoryId !== undefined) after.categoryId = patch.categoryId;
       if (patch.subcategoryId !== undefined) {
         after.subcategoryId = patch.subcategoryId;
@@ -166,21 +201,17 @@ export class TransactionsService {
       doc.set({
         type: after.type,
         amountCents: after.amountCents,
-        accountId: after.accountId ? oid(after.accountId) : undefined,
-        toAccountId: after.toAccountId ? oid(after.toAccountId) : undefined,
-        categoryId: after.categoryId ? oid(after.categoryId) : undefined,
-        subcategoryId: after.subcategoryId
-          ? oid(after.subcategoryId)
-          : undefined,
+        accountId: optOid(after.accountId),
+        toAccountId: optOid(after.toAccountId),
+        creditCardId: optOid(after.creditCardId),
+        toCreditCardId: optOid(after.toCreditCardId),
+        categoryId: optOid(after.categoryId),
+        subcategoryId: optOid(after.subcategoryId),
         ...(patch.date !== undefined && { date: patch.date }),
         ...(patch.note !== undefined && { note: patch.note ?? undefined }),
       });
       await doc.save({ session });
-      await this.accounts.applyDeltas(
-        userId,
-        netEffects(before, after).accounts,
-        session,
-      );
+      await this.applyEffects(userId, netEffects(before, after), session);
       return doc;
     });
   }
@@ -188,16 +219,48 @@ export class TransactionsService {
   async remove(userId: string, id: string): Promise<void> {
     await this.connection.transaction(async (session) => {
       const doc = await this.loadForUpdate(userId, id, session);
-      await this.model.deleteOne(
-        { _id: doc._id, userId: oid(userId) },
-        { session },
-      );
-      await this.accounts.applyDeltas(
-        userId,
-        netEffects(shapeOf(doc), null).accounts,
-        session,
-      );
+      this.assertNotManaged(doc);
+      await this.deleteAndRevert(userId, doc, session);
     });
+  }
+
+  /** Deletes any transaction (including managed ones) inside the caller's transaction. */
+  async removeWithin(
+    session: ClientSession,
+    userId: string,
+    id: string,
+  ): Promise<void> {
+    const doc = await this.loadForUpdate(userId, id, session);
+    await this.deleteAndRevert(userId, doc, session);
+  }
+
+  private async deleteAndRevert(
+    userId: string,
+    doc: TransactionDocument,
+    session: ClientSession,
+  ): Promise<void> {
+    await this.model.deleteOne(
+      { _id: doc._id, userId: oid(userId) },
+      { session },
+    );
+    await this.applyEffects(userId, netEffects(shapeOf(doc), null), session);
+  }
+
+  private async applyEffects(
+    userId: string,
+    effects: Effects,
+    session: ClientSession,
+  ): Promise<void> {
+    await this.accounts.applyDeltas(userId, effects.accounts, session);
+    await this.cards.applyDebtDeltas(userId, effects.cards, session);
+  }
+
+  private assertNotManaged(doc: TransactionDocument): void {
+    if (doc.installmentPurchaseId) {
+      throw new ConflictException(
+        'This transaction is managed by an installment purchase',
+      );
+    }
   }
 
   private async loadForUpdate(
@@ -229,6 +292,15 @@ export class TransactionsService {
       const account = await this.accounts.findOne(userId, accountId);
       if (account.isArchived && !hadAccounts.has(accountId)) {
         throw new ConflictException('Account is archived');
+      }
+    }
+
+    const hadCards = new Set([before?.creditCardId, before?.toCreditCardId]);
+    for (const cardId of [after.creditCardId, after.toCreditCardId]) {
+      if (!cardId) continue;
+      const card = await this.cards.findOne(userId, cardId);
+      if (card.isArchived && !hadCards.has(cardId)) {
+        throw new ConflictException('Credit card is archived');
       }
     }
 

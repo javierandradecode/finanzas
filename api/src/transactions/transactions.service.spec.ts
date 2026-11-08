@@ -4,10 +4,14 @@ import {
   NotFoundException,
   ValidationPipe,
 } from '@nestjs/common';
-import { MongooseModule, getModelToken } from '@nestjs/mongoose';
+import {
+  MongooseModule,
+  getConnectionToken,
+  getModelToken,
+} from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { plainToInstance } from 'class-transformer';
-import { Model, Types } from 'mongoose';
+import { Connection, Model, Types } from 'mongoose';
 import {
   InMemoryMongo,
   mongoTestOptions,
@@ -20,6 +24,11 @@ import {
   Category,
   CategorySchema,
 } from '../categories/schemas/category.schema';
+import { CreditCardsService } from '../credit-cards/credit-cards.service';
+import {
+  CreditCard,
+  CreditCardSchema,
+} from '../credit-cards/schemas/credit-card.schema';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { ListTransactionsQuery } from './dto/list-transactions.query';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
@@ -38,6 +47,9 @@ describe('TransactionsService (integration)', () => {
   let accountModel: Model<Account>;
   let categoryModel: Model<Category>;
   let txModel: Model<Transaction>;
+  let cardModel: Model<CreditCard>;
+  let cards: CreditCardsService;
+  let connection: Connection;
 
   const u1 = oid();
   const u2 = oid();
@@ -51,6 +63,9 @@ describe('TransactionsService (integration)', () => {
   let incomeCat: string;
   let archivedCat: string;
   let foreignCat: string;
+  let K: string;
+  let archivedCard: string;
+  let foreignCard: string;
 
   beforeAll(async () => {
     mongo = await startMongo();
@@ -61,15 +76,24 @@ describe('TransactionsService (integration)', () => {
           { name: Account.name, schema: AccountSchema },
           { name: Category.name, schema: CategorySchema },
           { name: Transaction.name, schema: TransactionSchema },
+          { name: CreditCard.name, schema: CreditCardSchema },
         ]),
       ],
-      providers: [AccountsService, CategoriesService, TransactionsService],
+      providers: [
+        AccountsService,
+        CategoriesService,
+        CreditCardsService,
+        TransactionsService,
+      ],
     }).compile();
     service = moduleRef.get(TransactionsService);
     accounts = moduleRef.get(AccountsService);
     accountModel = moduleRef.get(getModelToken(Account.name));
     categoryModel = moduleRef.get(getModelToken(Category.name));
     txModel = moduleRef.get(getModelToken(Transaction.name));
+    cardModel = moduleRef.get(getModelToken(CreditCard.name));
+    cards = moduleRef.get(CreditCardsService);
+    connection = moduleRef.get(getConnectionToken());
   });
 
   afterAll(async () => {
@@ -83,6 +107,7 @@ describe('TransactionsService (integration)', () => {
       accountModel.deleteMany({}),
       categoryModel.deleteMany({}),
       txModel.deleteMany({}),
+      cardModel.deleteMany({}),
     ]);
     const acc = (
       userId: Types.ObjectId,
@@ -118,10 +143,27 @@ describe('TransactionsService (integration)', () => {
       (await cat(u1, 'expense', 'Vieja', { isArchived: true }))._id,
     );
     foreignCat = String((await cat(u2, 'expense', 'Ajena'))._id);
+    const card = (userId: Types.ObjectId, name: string, isArchived = false) =>
+      cardModel
+        .create({
+          userId,
+          name,
+          limitCents: 100_000,
+          cutoffDay: 15,
+          paymentDay: 5,
+          isArchived,
+        })
+        .then((d) => String(d._id));
+    K = await card(u1, 'Visa');
+    archivedCard = await card(u1, 'Vieja', true);
+    foreignCard = await card(u2, 'Ajena');
   });
 
   const balance = async (id: string) =>
     (await accountModel.findById(id).lean())!.balanceCents;
+
+  const debt = async (id: string) =>
+    (await cardModel.findById(id).lean())!.debtCents;
 
   const dto = (over: Record<string, unknown>) =>
     ({
@@ -235,6 +277,162 @@ describe('TransactionsService (integration)', () => {
       );
       expect(await balance(A)).toBe(5_000);
       expect(await txModel.countDocuments({})).toBe(5);
+    });
+  });
+
+  describe('credit cards', () => {
+    const cardExpense = (over: Record<string, unknown> = {}) =>
+      service.create(
+        String(u1),
+        dto({ accountId: undefined, creditCardId: K, ...over }),
+      );
+    const upd = (over: Record<string, unknown>) =>
+      plainToInstance(UpdateTransactionDto, over);
+
+    it('a card expense raises the debt and leaves account balances alone', async () => {
+      await cardExpense();
+      expect(await debt(K)).toBe(3_000);
+      expect(await balance(A)).toBe(10_000);
+      const card = await cardModel.findById(K);
+      expect(card!.toJSON().availableCents).toBe(97_000);
+    });
+
+    it('a transfer to a card lowers the account and the debt', async () => {
+      await cardExpense();
+      await service.create(
+        String(u1),
+        dto({
+          type: 'transfer',
+          amountCents: 2000,
+          toCreditCardId: K,
+          categoryId: undefined,
+        }),
+      );
+      expect(await balance(A)).toBe(8_000);
+      expect(await debt(K)).toBe(1_000);
+    });
+
+    it('overpaying a card leaves a negative debt (no blocking)', async () => {
+      await service.create(
+        String(u1),
+        dto({
+          type: 'transfer',
+          amountCents: 5000,
+          toCreditCardId: K,
+          categoryId: undefined,
+        }),
+      );
+      expect(await debt(K)).toBe(-5_000);
+    });
+
+    it('moving an expense from an account to a card swaps the effects', async () => {
+      const tx = await service.create(String(u1), dto({}));
+      expect(await balance(A)).toBe(7_000);
+      await service.update(
+        String(u1),
+        String(tx._id),
+        upd({ accountId: null, creditCardId: K }),
+      );
+      expect(await balance(A)).toBe(10_000);
+      expect(await debt(K)).toBe(3_000);
+    });
+
+    it('deleting a card expense reverts the debt', async () => {
+      const tx = await cardExpense();
+      await service.remove(String(u1), String(tx._id));
+      expect(await debt(K)).toBe(0);
+    });
+
+    it('rejects a foreign card (404) and a newly referenced archived card (409)', async () => {
+      await expect(
+        cardExpense({ creditCardId: foreignCard }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      await expect(
+        cardExpense({ creditCardId: archivedCard }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(await txModel.countDocuments({})).toBe(0);
+    });
+
+    it('rejects a card payment to a foreign card without touching the account', async () => {
+      await expect(
+        service.create(
+          String(u1),
+          dto({
+            type: 'transfer',
+            toCreditCardId: foreignCard,
+            categoryId: undefined,
+          }),
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(await balance(A)).toBe(10_000);
+    });
+
+    it('keeps old transactions editable after their card is archived', async () => {
+      const tx = await cardExpense();
+      await cardModel.updateOne({ _id: K }, { isArchived: true });
+      const updated = await service.update(
+        String(u1),
+        String(tx._id),
+        upd({ note: 'ok' }),
+      );
+      expect(updated.note).toBe('ok');
+      expect(await debt(K)).toBe(3_000);
+    });
+
+    it('rolls back everything when updating the debt fails', async () => {
+      jest
+        .spyOn(cards, 'applyDebtDeltas')
+        .mockRejectedValueOnce(new Error('boom'));
+      await expect(cardExpense()).rejects.toThrow('boom');
+      expect(await txModel.countDocuments({})).toBe(0);
+      expect(await debt(K)).toBe(0);
+    });
+
+    it('five simultaneous card expenses add up exactly', async () => {
+      await Promise.all(
+        Array.from({ length: 5 }, () => cardExpense({ amountCents: 1000 })),
+      );
+      expect(await debt(K)).toBe(5_000);
+    });
+
+    describe('managed transactions (installment purchases)', () => {
+      const purchaseId = new Types.ObjectId().toString();
+      const createManaged = () =>
+        connection.transaction((session) =>
+          service.createWithin(session, String(u1), {
+            ...dto({ accountId: undefined, creditCardId: K }),
+            source: 'installment',
+            installmentPurchaseId: purchaseId,
+          }),
+        );
+
+      it('createWithin stores the link and source, and applies the debt', async () => {
+        const tx = await createManaged();
+        expect(tx.source).toBe('installment');
+        expect(String(tx.installmentPurchaseId)).toBe(purchaseId);
+        expect(await debt(K)).toBe(3_000);
+      });
+
+      it('direct update and remove are rejected with 409', async () => {
+        const tx = await createManaged();
+        await expect(
+          service.update(String(u1), String(tx._id), upd({ note: 'x' })),
+        ).rejects.toBeInstanceOf(ConflictException);
+        await expect(
+          service.remove(String(u1), String(tx._id)),
+        ).rejects.toBeInstanceOf(ConflictException);
+        expect(await debt(K)).toBe(3_000);
+        expect(await txModel.countDocuments({})).toBe(1);
+      });
+
+      it('removeWithin deletes it and reverts the debt', async () => {
+        const tx = await createManaged();
+        await connection.transaction((session) =>
+          service.removeWithin(session, String(u1), String(tx._id)),
+        );
+        expect(await debt(K)).toBe(0);
+        expect(await txModel.countDocuments({})).toBe(0);
+      });
     });
   });
 
