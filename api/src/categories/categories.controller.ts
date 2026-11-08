@@ -14,6 +14,10 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
+import {
+  CreateSubcategoryDto,
+  UpdateSubcategoryDto,
+} from './dto/subcategory.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import type { CategoryType } from './schemas/category.schema';
 
@@ -53,6 +57,35 @@ export class CategoriesController {
     @Body() dto: UpdateCategoryDto,
   ) {
     return this.categories.update(user.userId, id, dto);
+  }
+
+  @Post(':id/subcategories')
+  addSubcategory(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() dto: CreateSubcategoryDto,
+  ) {
+    return this.categories.addSubcategory(user.userId, id, dto);
+  }
+
+  @Patch(':id/subcategories/:subId')
+  updateSubcategory(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Param('subId', ParseObjectIdPipe) subId: string,
+    @Body() dto: UpdateSubcategoryDto,
+  ) {
+    return this.categories.updateSubcategory(user.userId, id, subId, dto);
+  }
+
+  @Delete(':id/subcategories/:subId')
+  @HttpCode(204)
+  archiveSubcategory(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Param('subId', ParseObjectIdPipe) subId: string,
+  ): Promise<void> {
+    return this.categories.archiveSubcategory(user.userId, id, subId);
   }
 
   @Delete(':id')
