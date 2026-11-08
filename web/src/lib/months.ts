@@ -12,14 +12,21 @@ export function currentMonthKey(now = new Date()): string {
 }
 
 /** Shifts a month key by `delta` months (Date handles the year rollover). */
-function shift(key: string, delta: number): string {
+export function shiftMonth(key: string, delta: number): string {
   const [y, m] = key.split('-').map(Number)
   const d = new Date(Date.UTC(y, m - 1 + delta, 1))
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`
 }
 
-export const previousMonth = (key: string): string => shift(key, -1)
-export const nextMonth = (key: string): string => shift(key, 1)
+export const previousMonth = (key: string): string => shiftMonth(key, -1)
+export const nextMonth = (key: string): string => shiftMonth(key, 1)
+
+/** First and last day of a month as YYYY-MM-DD (what the report endpoints take). */
+export function monthDateRange(key: string): { from: string; to: string } {
+  const [y, m] = key.split('-').map(Number)
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate()
+  return { from: `${key}-01`, to: `${key}-${pad(lastDay)}` }
+}
 
 /** Signed number of months from `from` to `to`. */
 export function monthsBetween(from: string, to: string): number {

@@ -70,9 +70,9 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 - [x] Presupuestos
 
 ## Fase 10 — Dashboard
-- [ ] Tarjetas de resumen (saldo total, gastos del mes, deuda en tarjetas)
-- [ ] Gráficos con Recharts: gasto por categoría, evolución mensual, presupuesto vs real
-- [ ] Próximos pagos (tarjetas y suscripciones)
+- [x] Tarjetas de resumen (saldo total, gastos del mes, deuda en tarjetas)
+- [x] Gráficos con Recharts: gasto por categoría, evolución mensual, presupuesto vs real
+- [x] Próximos pagos (tarjetas y suscripciones)
 
 ## Fase 11 — Cierre
 - [ ] Revisión de seguridad (filtrado por usuario, validaciones, secretos)
