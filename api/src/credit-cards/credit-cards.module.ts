@@ -8,6 +8,7 @@ import {
   Transaction,
   TransactionSchema,
 } from '../transactions/schemas/transaction.schema';
+import { CreditCardsController } from './credit-cards.controller';
 import { CreditCardsService } from './credit-cards.service';
 import { CreditCard, CreditCardSchema } from './schemas/credit-card.schema';
 import { StatementService } from './statement.service';
@@ -21,6 +22,7 @@ import { StatementService } from './statement.service';
       { name: InstallmentPurchase.name, schema: InstallmentPurchaseSchema },
     ]),
   ],
+  controllers: [CreditCardsController],
   providers: [CreditCardsService, StatementService],
   exports: [CreditCardsService, StatementService],
 })

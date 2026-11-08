@@ -7,6 +7,7 @@ import {
   TransactionSchema,
 } from '../transactions/schemas/transaction.schema';
 import { TransactionsModule } from '../transactions/transactions.module';
+import { InstallmentPurchasesController } from './installment-purchases.controller';
 import { InstallmentPurchasesService } from './installment-purchases.service';
 import {
   InstallmentPurchase,
@@ -23,6 +24,7 @@ import {
     CreditCardsModule,
     TransactionsModule,
   ],
+  controllers: [InstallmentPurchasesController],
   providers: [InstallmentPurchasesService],
   exports: [InstallmentPurchasesService],
 })

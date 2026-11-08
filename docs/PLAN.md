@@ -36,11 +36,11 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 - [x] Tests de la lógica de saldos
 
 ## Fase 5 — Tarjetas de crédito y compras diferidas
-- [ ] CRUD de `creditCards` (cupo, día de corte, día de pago)
-- [ ] Gastos con tarjeta y cálculo de deuda y cupo disponible
-- [ ] `installmentPurchases`: compras a cuotas y proyección de pagos por mes
-- [ ] Endpoint de estado de cuenta por período de corte
-- [ ] Tests del cálculo de cuotas y períodos
+- [x] CRUD de `creditCards` (cupo, día de corte, día de pago)
+- [x] Gastos con tarjeta y cálculo de deuda y cupo disponible
+- [x] `installmentPurchases`: compras a cuotas y proyección de pagos por mes
+- [x] Endpoint de estado de cuenta por período de corte
+- [x] Tests del cálculo de cuotas y períodos
 
 ## Fase 6 — Suscripciones
 - [ ] CRUD de `subscriptions` (frecuencia mensual, anual, etc.)
