@@ -35,3 +35,29 @@ export const callOf = (fn: ReturnType<typeof vi.fn>, n = 0) => {
     body: init?.body ? JSON.parse(init.body as string) : undefined,
   }
 }
+
+export interface RecordedCall {
+  path: string
+  method: string
+  body?: unknown
+}
+
+/** Stubs fetch by "METHOD /path"; unknown routes answer 404. Returns the recorded calls. */
+export function routeFetch(routes: Record<string, () => Response>) {
+  const calls: RecordedCall[] = []
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      const path = url.replace(/^https?:\/\/[^/]+\/api/, '')
+      const method = init?.method ?? 'GET'
+      calls.push({
+        path,
+        method,
+        body: init?.body ? JSON.parse(init.body as string) : undefined,
+      })
+      const handler = routes[`${method} ${path}`]
+      return Promise.resolve(handler ? handler() : jsonResponse(404, { message: 'no route' }))
+    }),
+  )
+  return calls
+}

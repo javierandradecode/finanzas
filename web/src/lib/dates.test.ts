@@ -1,0 +1,28 @@
+import { formatDateUtc, monthRangeLocal, todayLocal } from './dates'
+
+describe('dates', () => {
+  it('todayLocal uses the local calendar, not UTC', () => {
+    // 20:00 local on the 15th: in UTC-5 that is already the 16th in UTC.
+    expect(todayLocal(new Date(2026, 2, 15, 20, 0))).toBe('2026-03-15')
+    expect(todayLocal(new Date(2026, 0, 5, 0, 30))).toBe('2026-01-05')
+  })
+
+  it('monthRangeLocal returns the first and last day of the local month', () => {
+    expect(monthRangeLocal(new Date(2026, 1, 10))).toEqual({
+      from: '2026-02-01',
+      to: '2026-02-28',
+    })
+    expect(monthRangeLocal(new Date(2028, 1, 10)).to).toBe('2028-02-29')
+    expect(monthRangeLocal(new Date(2026, 11, 31))).toEqual({
+      from: '2026-12-01',
+      to: '2026-12-31',
+    })
+  })
+
+  it('formatDateUtc shows the UTC day whatever the local zone is', () => {
+    const out = formatDateUtc('2026-03-15T00:00:00.000Z')
+    expect(out).toContain('15')
+    expect(out).toContain('2026')
+    expect(formatDateUtc('2026-03-31T23:59:59.999Z')).toContain('31')
+  })
+})
