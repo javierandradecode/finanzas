@@ -6,6 +6,7 @@ import { RequireAuth } from '@/features/auth/RequireAuth'
 import { LoginPage } from '@/pages/LoginPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 import { AccountsPage } from '@/pages/AccountsPage'
+import { DashboardPage } from '@/pages/DashboardPage'
 import { CardDetailPage } from '@/pages/CardDetailPage'
 import { CardsPage } from '@/pages/CardsPage'
 import { BudgetsPage } from '@/pages/BudgetsPage'
@@ -16,6 +17,7 @@ import { RegisterPage } from '@/pages/RegisterPage'
 
 // Screens built so far; the rest of the menu still shows a placeholder.
 const PAGES: Record<string, ReactNode> = {
+  '/': <DashboardPage />,
   '/cuentas': <AccountsPage />,
   '/categorias': <CategoriesPage />,
   '/tarjetas': <CardsPage />,
