@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
 
 export type CategoryType = 'income' | 'expense';
 
@@ -17,7 +17,12 @@ export const SubcategorySchema = SchemaFactory.createForClass(Subcategory);
 
 @Schema({ timestamps: true })
 export class Category {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true,
+  })
   userId!: Types.ObjectId;
 
   @Prop({ required: true, enum: ['income', 'expense'] })

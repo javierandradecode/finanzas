@@ -29,11 +29,11 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 - [x] Todo filtrado por usuario
 
 ## Fase 4 — Movimientos
-- [ ] CRUD de `transactions` (ingreso, gasto, transferencia entre cuentas)
-- [ ] Actualización de saldos con transacciones de MongoDB
-- [ ] Listado con filtros (rango de fechas, categoría, cuenta, tipo) y paginación
-- [ ] Índices: `{ userId, date }`, `{ userId, categoryId }`
-- [ ] Tests de la lógica de saldos
+- [x] CRUD de `transactions` (ingreso, gasto, transferencia entre cuentas)
+- [x] Actualización de saldos con transacciones de MongoDB
+- [x] Listado con filtros (rango de fechas, categoría, cuenta, tipo) y paginación
+- [x] Índices: `{ userId, date }`, `{ userId, categoryId }`
+- [x] Tests de la lógica de saldos
 
 ## Fase 5 — Tarjetas de crédito y compras diferidas
 - [ ] CRUD de `creditCards` (cupo, día de corte, día de pago)

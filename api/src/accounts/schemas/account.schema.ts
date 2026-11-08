@@ -1,12 +1,17 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
 
 export const ACCOUNT_TYPES = ['cash', 'savings', 'checking'] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
 @Schema({ timestamps: true })
 export class Account {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true,
+  })
   userId!: Types.ObjectId;
 
   @Prop({ type: String, required: true, enum: ACCOUNT_TYPES })
