@@ -75,7 +75,7 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 - [x] Próximos pagos (tarjetas y suscripciones)
 
 ## Fase 11 — Cierre
-- [ ] Revisión de seguridad (filtrado por usuario, validaciones, secretos)
+- [x] Revisión de seguridad (filtrado por usuario, validaciones, secretos)
 - [ ] Exportar movimientos a CSV
 - [ ] Despliegue: API y web en un servicio gratuito + Atlas
 - [ ] README con instrucciones de instalación
