@@ -91,5 +91,8 @@
     "transformIgnorePatterns": [
       "/node_modules/(?!(@nestjs/jwt|@nestjs/mongoose|@nestjs/schedule|@nestjs/config|@nestjs/passport|@nestjs/throttler)/)"
     ]
+  },
+  "overrides": {
+    "multer": "2.5.0"
   }
 }
