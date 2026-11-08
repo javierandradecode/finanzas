@@ -7,12 +7,14 @@ import { LoginPage } from '@/pages/LoginPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 import { AccountsPage } from '@/pages/AccountsPage'
 import { CategoriesPage } from '@/pages/CategoriesPage'
+import { TransactionsPage } from '@/pages/TransactionsPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 
 // Screens built so far; the rest of the menu still shows a placeholder.
 const PAGES: Record<string, ReactNode> = {
   '/cuentas': <AccountsPage />,
   '/categorias': <CategoriesPage />,
+  '/movimientos': <TransactionsPage />,
 }
 
 export const router = createBrowserRouter([
