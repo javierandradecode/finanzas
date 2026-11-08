@@ -119,7 +119,11 @@ export class TransactionsService {
         ],
         { session },
       );
-      await this.accounts.applyDeltas(userId, netEffects(null, after), session);
+      await this.accounts.applyDeltas(
+        userId,
+        netEffects(null, after).accounts,
+        session,
+      );
       return doc;
     });
   }
@@ -162,7 +166,7 @@ export class TransactionsService {
       doc.set({
         type: after.type,
         amountCents: after.amountCents,
-        accountId: oid(after.accountId),
+        accountId: after.accountId ? oid(after.accountId) : undefined,
         toAccountId: after.toAccountId ? oid(after.toAccountId) : undefined,
         categoryId: after.categoryId ? oid(after.categoryId) : undefined,
         subcategoryId: after.subcategoryId
@@ -174,7 +178,7 @@ export class TransactionsService {
       await doc.save({ session });
       await this.accounts.applyDeltas(
         userId,
-        netEffects(before, after),
+        netEffects(before, after).accounts,
         session,
       );
       return doc;
@@ -190,7 +194,7 @@ export class TransactionsService {
       );
       await this.accounts.applyDeltas(
         userId,
-        netEffects(shapeOf(doc), null),
+        netEffects(shapeOf(doc), null).accounts,
         session,
       );
     });
