@@ -28,6 +28,10 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsString()
   CORS_ORIGIN: string = 'http://localhost:5173';
+
+  @IsOptional()
+  @IsString()
+  JWT_EXPIRES_IN: string = '7d';
 }
 
 export function validateEnv(
