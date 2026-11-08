@@ -4,8 +4,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { ClientSession, Model, Types } from 'mongoose';
 import { definedOnly } from '../common/utils/defined-only';
+import type { AccountDeltas } from '../transactions/transaction-effects';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 import { Account, AccountDocument } from './schemas/account.schema';
@@ -65,6 +66,29 @@ export class AccountsService {
     Object.assign(doc, definedOnly(dto));
     await doc.save();
     return doc;
+  }
+
+  /**
+   * Adds each delta to its account's balance with an atomic `$inc`, inside the
+   * caller's transaction. Never read-modify-write: concurrent updates would be lost.
+   */
+  async applyDeltas(
+    userId: string,
+    deltas: AccountDeltas,
+    session: ClientSession,
+  ): Promise<void> {
+    if (deltas.size === 0) return;
+    const owner = new Types.ObjectId(userId);
+    const ops = [...deltas].map(([accountId, cents]) => ({
+      updateOne: {
+        filter: { _id: new Types.ObjectId(accountId), userId: owner },
+        update: { $inc: { balanceCents: cents } },
+      },
+    }));
+    const result = await this.model.bulkWrite(ops, { session });
+    if (result.matchedCount !== ops.length) {
+      throw new NotFoundException('Account not found');
+    }
   }
 
   async archive(userId: string, id: string): Promise<void> {
