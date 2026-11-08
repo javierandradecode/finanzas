@@ -7,8 +7,10 @@ import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
 import { AccountsModule } from './accounts/accounts.module';
 import { AuthModule } from './auth/auth.module';
+import { BudgetsModule } from './budgets/budgets.module';
 import { CreditCardsModule } from './credit-cards/credit-cards.module';
 import { InstallmentPurchasesModule } from './installment-purchases/installment-purchases.module';
+import { ReportsModule } from './reports/reports.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { HealthModule } from './health/health.module';
@@ -31,6 +33,8 @@ import { HealthModule } from './health/health.module';
     CreditCardsModule,
     InstallmentPurchasesModule,
     SubscriptionsModule,
+    BudgetsModule,
+    ReportsModule,
     AuthModule,
   ],
 })
