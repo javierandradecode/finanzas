@@ -52,9 +52,10 @@ describe('AuthService', () => {
     it('normalizes the email', async () => {
       await service.register(dto);
       expect(users.findByEmail).toHaveBeenCalledWith('ana@x.com');
-      expect(users.create.mock.calls[0][0]).toMatchObject({
-        email: 'ana@x.com',
-      });
+      expect(users.create).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'ana@x.com' }),
+        fakeSession,
+      );
     });
 
     it('stores a bcrypt hash and creates default categories in the same session', async () => {
