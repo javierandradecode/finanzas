@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   NotFoundException,
+  ValidationPipe,
 } from '@nestjs/common';
 import { MongooseModule, getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -20,6 +21,7 @@ import {
   CategorySchema,
 } from '../categories/schemas/category.schema';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { ListTransactionsQuery } from './dto/list-transactions.query';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { Transaction, TransactionSchema } from './schemas/transaction.schema';
 import { TransactionsService } from './transactions.service';
@@ -388,6 +390,123 @@ describe('TransactionsService (integration)', () => {
       ).rejects.toThrow('boom');
       expect((await txModel.findById(tx._id).lean())!.amountCents).toBe(3000);
       expect(await balance(A)).toBe(7_000);
+    });
+  });
+
+  describe('findAll', () => {
+    const query = (over: Record<string, unknown> = {}) =>
+      plainToInstance(ListTransactionsQuery, over);
+    const seed = (over: Record<string, unknown> = {}) =>
+      txModel.create({
+        userId: u1,
+        type: 'expense',
+        amountCents: 100,
+        date: new Date('2026-03-15T12:00:00Z'),
+        accountId: A,
+        categoryId: expenseCat,
+        ...over,
+      });
+
+    it("returns only the user's own transactions", async () => {
+      await seed();
+      await seed({ userId: u2, accountId: foreignAcc, categoryId: foreignCat });
+      const page = await service.findAll(String(u1), query());
+      expect(page.items).toHaveLength(1);
+      expect(page.total).toBe(1);
+    });
+
+    it('from/to are inclusive and a date-only `to` covers the whole day (UTC)', async () => {
+      await seed({ date: new Date('2026-03-01T00:00:00Z') });
+      await seed({ date: new Date('2026-03-31T23:59:59Z') });
+      await seed({ date: new Date('2026-04-01T00:00:00Z') });
+      await seed({ date: new Date('2026-02-28T23:59:59Z') });
+      const page = await service.findAll(
+        String(u1),
+        query({ from: '2026-03-01', to: '2026-03-31' }),
+      );
+      expect(page.total).toBe(2);
+    });
+
+    it('filters by type and category', async () => {
+      await seed();
+      await seed({ type: 'income', categoryId: incomeCat });
+      expect(
+        (await service.findAll(String(u1), query({ type: 'income' }))).total,
+      ).toBe(1);
+      expect(
+        (await service.findAll(String(u1), query({ categoryId: expenseCat })))
+          .total,
+      ).toBe(1);
+    });
+
+    it('accountId matches both origin and destination of a transfer', async () => {
+      await seed({ accountId: A });
+      await seed({
+        type: 'transfer',
+        accountId: A,
+        toAccountId: B,
+        categoryId: undefined,
+      });
+      await seed({ accountId: B });
+      const asB = await service.findAll(String(u1), query({ accountId: B }));
+      expect(asB.total).toBe(2);
+      const asA = await service.findAll(String(u1), query({ accountId: A }));
+      expect(asA.total).toBe(2);
+    });
+
+    it('sorts by date descending with _id descending as tiebreaker', async () => {
+      const same = new Date('2026-03-10T10:00:00Z');
+      const a = await seed({ date: same });
+      const b = await seed({ date: same });
+      const newest = await seed({ date: new Date('2026-03-20T10:00:00Z') });
+      const ids = (await service.findAll(String(u1), query())).items.map((t) =>
+        String(t._id),
+      );
+      expect(ids).toEqual([String(newest._id), String(b._id), String(a._id)]);
+    });
+
+    it('paginates: page 2 of 25 has 10 items, an out-of-range page is empty but keeps the total', async () => {
+      for (let i = 0; i < 25; i++) {
+        await seed({ date: new Date(Date.UTC(2026, 2, 1, 0, i)) });
+      }
+      const p2 = await service.findAll(
+        String(u1),
+        query({ page: '2', limit: '10' }),
+      );
+      expect(p2.items).toHaveLength(10);
+      expect(p2.total).toBe(25);
+      expect(p2.page).toBe(2);
+      expect(p2.limit).toBe(10);
+      const far = await service.findAll(
+        String(u1),
+        query({ page: '9', limit: '10' }),
+      );
+      expect(far.items).toEqual([]);
+      expect(far.total).toBe(25);
+    });
+
+    it('the query DTO rejects limit > 100, page < 1 and malformed ids', async () => {
+      const pipe = new ValidationPipe({ whitelist: true, transform: true });
+      const run = (q: Record<string, unknown>) =>
+        pipe.transform(q, { type: 'query', metatype: ListTransactionsQuery });
+      await expect(run({ limit: '101' })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      await expect(run({ page: '0' })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      await expect(run({ accountId: 'abc' })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      await expect(run({ from: 'not-a-date' })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      const ok = (await run({
+        limit: '100',
+        page: '3',
+      })) as ListTransactionsQuery;
+      expect(ok.limit).toBe(100);
+      expect(ok.page).toBe(3);
     });
   });
 

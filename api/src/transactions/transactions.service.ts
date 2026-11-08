@@ -5,17 +5,24 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import { ClientSession, Connection, Model, Types } from 'mongoose';
+import { ClientSession, Connection, QueryFilter, Model, Types } from 'mongoose';
 import { AccountsService } from '../accounts/accounts.service';
 import { CategoriesService } from '../categories/categories.service';
 import { definedOnly } from '../common/utils/defined-only';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { ListTransactionsQuery, Page } from './dto/list-transactions.query';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { Transaction, TransactionDocument } from './schemas/transaction.schema';
 import { netEffects } from './transaction-effects';
 import { assertValidShape, TxShape } from './transaction-shape';
 
 const oid = (id: string) => new Types.ObjectId(id);
+
+/** A date-only `to` ("2026-03-31") means the end of that day in UTC. */
+const endOfRange = (to: string): Date =>
+  /^\d{4}-\d{2}-\d{2}$/.test(to)
+    ? new Date(`${to}T23:59:59.999Z`)
+    : new Date(to);
 const str = (id?: Types.ObjectId | string | null) => (id ? String(id) : null);
 
 /** The fields of a transaction that decide its shape and its financial effect. */
@@ -52,6 +59,37 @@ export class TransactionsService {
       .exec();
     if (!doc) throw new NotFoundException('Transaction not found');
     return doc;
+  }
+
+  async findAll(
+    userId: string,
+    q: ListTransactionsQuery,
+  ): Promise<Page<TransactionDocument>> {
+    const filter: QueryFilter<Transaction> = { userId: oid(userId) };
+    if (q.type) filter.type = q.type;
+    if (q.categoryId) filter.categoryId = oid(q.categoryId);
+    if (q.accountId) {
+      filter.$or = [
+        { accountId: oid(q.accountId) },
+        { toAccountId: oid(q.accountId) },
+      ];
+    }
+    if (q.from || q.to) {
+      filter.date = {};
+      if (q.from) filter.date.$gte = new Date(q.from);
+      if (q.to) filter.date.$lte = endOfRange(q.to);
+    }
+
+    const [items, total] = await Promise.all([
+      this.model
+        .find(filter)
+        .sort({ date: -1, _id: -1 })
+        .skip((q.page - 1) * q.limit)
+        .limit(q.limit)
+        .exec(),
+      this.model.countDocuments(filter).exec(),
+    ]);
+    return { items, total, page: q.page, limit: q.limit };
   }
 
   async create(

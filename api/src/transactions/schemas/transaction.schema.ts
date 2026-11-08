@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
 import type { TxType } from '../transaction-effects';
 
 export const TX_TYPES = ['income', 'expense', 'transfer'] as const;
@@ -8,7 +8,7 @@ export type TxSource = (typeof TX_SOURCES)[number];
 
 @Schema({ timestamps: true })
 export class Transaction {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
   userId!: Types.ObjectId;
 
   @Prop({ type: String, required: true, enum: TX_TYPES })
@@ -23,17 +23,17 @@ export class Transaction {
   date!: Date;
 
   /** Income: receiving account. Expense: paying account. Transfer: origin. */
-  @Prop({ type: Types.ObjectId, ref: 'Account', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Account', required: true })
   accountId!: Types.ObjectId;
 
   /** Transfers only: destination account. */
-  @Prop({ type: Types.ObjectId, ref: 'Account' })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Account' })
   toAccountId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Category' })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Category' })
   categoryId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId })
+  @Prop({ type: MongooseSchema.Types.ObjectId })
   subcategoryId?: Types.ObjectId;
 
   @Prop({ trim: true })
