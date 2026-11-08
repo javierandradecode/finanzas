@@ -49,6 +49,15 @@ export interface InstallmentPurchaseView {
   isPaidOff: boolean;
 }
 
+export interface MonthlyProjection {
+  /** `YYYY-MM` (UTC). */
+  month: string;
+  principalCents: number;
+  interestCents: number;
+  paymentCents: number;
+  count: number;
+}
+
 @Injectable()
 export class InstallmentPurchasesService {
   constructor(
@@ -310,6 +319,54 @@ export class InstallmentPurchasesService {
       return claimed;
     });
     return this.view(updated);
+  }
+
+  /**
+   * What will be paid each month: the sum of the unpaid installments due in
+   * each of the next `months` months (default 12), starting with the current
+   * one. Unpaid installments that are already overdue count in the first month.
+   */
+  async projection(
+    userId: string,
+    opts: { months?: number; creditCardId?: string },
+    now: Date = new Date(),
+  ): Promise<MonthlyProjection[]> {
+    const months = opts.months ?? 12;
+    const filter: Record<string, unknown> = { userId: oid(userId) };
+    if (opts.creditCardId) filter.creditCardId = oid(opts.creditCardId);
+    const purchases = await this.model.find(filter).exec();
+
+    const firstMonth = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+    const buckets: MonthlyProjection[] = Array.from(
+      { length: months },
+      (_, i) => ({
+        month: new Date(
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + i, 1),
+        )
+          .toISOString()
+          .slice(0, 7),
+        principalCents: 0,
+        interestCents: 0,
+        paymentCents: 0,
+        count: 0,
+      }),
+    );
+    const byMonth = new Map(buckets.map((b) => [b.month, b]));
+
+    for (const purchase of purchases) {
+      this.scheduleOf(purchase).forEach((item, index) => {
+        if (index < purchase.paidInstallments) return;
+        const bucket =
+          byMonth.get(item.dueDate.toISOString().slice(0, 7)) ??
+          (item.dueDate.getTime() < firstMonth ? buckets[0] : undefined);
+        if (!bucket) return;
+        bucket.principalCents += item.principalCents;
+        bucket.interestCents += item.interestCents;
+        bucket.paymentCents += item.paymentCents;
+        bucket.count += 1;
+      });
+    }
+    return buckets;
   }
 
   private async load(

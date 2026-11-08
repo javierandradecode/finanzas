@@ -29,7 +29,9 @@ import {
 } from '../transactions/schemas/transaction.schema';
 import { TransactionsService } from '../transactions/transactions.service';
 import { CreateInstallmentPurchaseDto } from './dto/create-installment-purchase.dto';
+import { monthlyDueDates } from '../credit-cards/billing-dates';
 import { InstallmentPurchasesService } from './installment-purchases.service';
+import { buildSchedule } from './installment-schedule';
 import {
   InstallmentPurchase,
   InstallmentPurchaseSchema,
@@ -399,6 +401,129 @@ describe('InstallmentPurchasesService (integration)', () => {
       await expect(
         service.update(String(u1), String(view._id), { categoryId: incomeCat }),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('projection', () => {
+    const now = day('2026-03-20');
+    const seed = (over: Record<string, unknown>) =>
+      purchaseModel.create({
+        userId: u1,
+        creditCardId: new Types.ObjectId(K),
+        description: 'Compra',
+        categoryId: new Types.ObjectId(expenseCat),
+        totalCents: 120_000,
+        installments: 12,
+        annualRatePercent: 0,
+        startDate: day('2026-03-10'),
+        firstDueDate: day('2026-04-05'),
+        paymentDay: 5,
+        paidInstallments: 0,
+        purchaseTransactionId: oid(),
+        ...over,
+      });
+    const scheduleOf = (
+      total: number,
+      n: number,
+      rate: number,
+      first: string,
+    ) =>
+      buildSchedule({
+        totalCents: total,
+        installments: n,
+        annualRatePercent: rate,
+        dueDates: monthlyDueDates(day(first), 5, n),
+      });
+
+    it('sums unpaid installments per month, one entry per month from the current one', async () => {
+      await seed({}); // 12 x 10000 from April
+      await seed({
+        totalCents: 60_000,
+        installments: 3,
+        annualRatePercent: 12,
+      });
+      const second = scheduleOf(60_000, 3, 12, '2026-04-05');
+
+      const result = await service.projection(String(u1), { months: 3 }, now);
+      expect(result.map((m) => m.month)).toEqual([
+        '2026-03',
+        '2026-04',
+        '2026-05',
+      ]);
+      expect(result[0]).toEqual({
+        month: '2026-03',
+        principalCents: 0,
+        interestCents: 0,
+        paymentCents: 0,
+        count: 0,
+      });
+      expect(result[1]).toEqual({
+        month: '2026-04',
+        principalCents: 10_000 + second[0].principalCents,
+        interestCents: second[0].interestCents,
+        paymentCents: 10_000 + second[0].paymentCents,
+        count: 2,
+      });
+      expect(result[2].paymentCents).toBe(10_000 + second[1].paymentCents);
+    });
+
+    it('counts overdue unpaid installments in the first month and skips paid ones', async () => {
+      // 3 installments of 10000: Feb 5, Mar 5, Apr 5
+      await seed({
+        totalCents: 30_000,
+        installments: 3,
+        firstDueDate: day('2026-02-05'),
+        paidInstallments: 0,
+      });
+      await seed({
+        totalCents: 30_000,
+        installments: 3,
+        firstDueDate: day('2026-02-05'),
+        paidInstallments: 1, // February already paid
+      });
+      const result = await service.projection(String(u1), { months: 2 }, now);
+      // March = overdue February (A) + March (A) + March (B)
+      expect(result[0]).toMatchObject({
+        month: '2026-03',
+        paymentCents: 30_000,
+        count: 3,
+      });
+      expect(result[1]).toMatchObject({
+        month: '2026-04',
+        paymentCents: 20_000,
+        count: 2,
+      });
+    });
+
+    it('filters by card and by user', async () => {
+      const k2 = String(
+        (
+          await cardModel.create({
+            userId: u1,
+            name: 'Master',
+            limitCents: 100_000,
+            cutoffDay: 20,
+            paymentDay: 5,
+          })
+        )._id,
+      );
+      await seed({});
+      await seed({ creditCardId: new Types.ObjectId(k2) });
+      await seed({ userId: u2 });
+      const all = await service.projection(String(u1), { months: 2 }, now);
+      expect(all[1].count).toBe(2);
+      const onlyK = await service.projection(
+        String(u1),
+        { months: 2, creditCardId: K },
+        now,
+      );
+      expect(onlyK[1].count).toBe(1);
+    });
+
+    it('defaults to 12 months', async () => {
+      const result = await service.projection(String(u1), {}, now);
+      expect(result).toHaveLength(12);
+      expect(result[11].month).toBe('2027-02');
     });
   });
 
