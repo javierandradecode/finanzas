@@ -25,6 +25,10 @@ describe('transaction filters', () => {
     expect(parse('from=2026-01-01')).toMatchObject({ from: '2026-01-01', to: undefined })
   })
 
+  it('keeps a lone `to` too, without falling back to the month', () => {
+    expect(parse('to=2026-01-31')).toEqual({ to: '2026-01-31', page: 1 })
+  })
+
   it.each(['0', '-2', 'abc', '1.5'])('falls back to page 1 for page=%s', (page) => {
     expect(parse(`page=${page}`).page).toBe(1)
   })
