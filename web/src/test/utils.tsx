@@ -43,7 +43,7 @@ export interface RecordedCall {
 }
 
 /** Stubs fetch by "METHOD /path"; unknown routes answer 404. Returns the recorded calls. */
-export function routeFetch(routes: Record<string, () => Response>) {
+export function routeFetch(routes: Record<string, () => Response | Promise<Response>>) {
   const calls: RecordedCall[] = []
   vi.stubGlobal(
     'fetch',

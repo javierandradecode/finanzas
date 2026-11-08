@@ -1,5 +1,6 @@
 import {
   payInstallmentSchema,
+  purchaseEditSchema,
   purchaseSchema,
   toPurchasePayload,
   type PurchaseFormValues,
@@ -93,5 +94,17 @@ describe('payInstallmentSchema', () => {
     const msgs = r.success ? [] : r.error.issues.map((i) => i.message)
     expect(msgs).toContain('Elige una cuenta')
     expect(msgs).toContain('Fecha no válida')
+  })
+})
+
+describe('purchaseEditSchema', () => {
+  it('needs a description and a category', () => {
+    expect(
+      purchaseEditSchema.safeParse({ description: 'X', categoryId: 'c1', subcategoryId: '' }).success,
+    ).toBe(true)
+    const r = purchaseEditSchema.safeParse({ description: ' ', categoryId: '', subcategoryId: '' })
+    const msgs = r.success ? [] : r.error.issues.map((i) => i.message)
+    expect(msgs).toContain('Ingresa una descripción')
+    expect(msgs).toContain('Elige una categoría')
   })
 })

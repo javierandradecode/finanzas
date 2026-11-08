@@ -81,3 +81,16 @@ export const payInstallmentSchema = z.object({
 })
 
 export type PayInstallmentValues = z.infer<typeof payInstallmentSchema>
+
+/** Only the text fields of a purchase can change after creation. */
+export const purchaseEditSchema = z.object({
+  description: z
+    .string()
+    .trim()
+    .min(1, 'Ingresa una descripción')
+    .max(200, 'La descripción admite hasta 200 caracteres'),
+  categoryId: z.string().min(1, 'Elige una categoría'),
+  subcategoryId: z.string(),
+})
+
+export type PurchaseEditValues = z.infer<typeof purchaseEditSchema>

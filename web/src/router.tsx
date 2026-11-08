@@ -6,6 +6,7 @@ import { RequireAuth } from '@/features/auth/RequireAuth'
 import { LoginPage } from '@/pages/LoginPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 import { AccountsPage } from '@/pages/AccountsPage'
+import { CardDetailPage } from '@/pages/CardDetailPage'
 import { CardsPage } from '@/pages/CardsPage'
 import { CategoriesPage } from '@/pages/CategoriesPage'
 import { TransactionsPage } from '@/pages/TransactionsPage'
@@ -27,10 +28,13 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <AppLayout />,
-        children: NAV_ITEMS.map(({ label, path }) => ({
-          path,
-          element: PAGES[path] ?? <PlaceholderPage title={label} />,
-        })),
+        children: [
+          ...NAV_ITEMS.map(({ label, path }) => ({
+            path,
+            element: PAGES[path] ?? <PlaceholderPage title={label} />,
+          })),
+          { path: '/tarjetas/:id', element: <CardDetailPage /> },
+        ],
       },
     ],
   },
