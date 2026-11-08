@@ -39,3 +39,12 @@ export function formatMonth(key: string): string {
     timeZone: 'UTC',
   }).format(new Date(`${key}-01T00:00:00Z`))
 }
+
+/** "2026-03" → "mar 26", for chart axes. */
+export function formatMonthShort(key: string): string {
+  return new Intl.DateTimeFormat('es', {
+    month: 'short',
+    year: '2-digit',
+    timeZone: 'UTC',
+  }).format(new Date(`${key}-01T00:00:00Z`))
+}

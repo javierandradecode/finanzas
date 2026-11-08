@@ -12,7 +12,7 @@ export function currentMonthKey(now = new Date()): string {
 }
 
 /** Shifts a month key by `delta` months (Date handles the year rollover). */
-function shift(key: string, delta: number): string {
+export function shiftMonth(key: string, delta: number): string {
   const [y, m] = key.split('-').map(Number)
   const d = new Date(Date.UTC(y, m - 1 + delta, 1))
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`

@@ -1,10 +1,12 @@
 import {
   currentMonthKey,
   isMonthKey,
+  monthDateRange,
   monthFromSearch,
   monthsBetween,
   nextMonth,
   previousMonth,
+  shiftMonth,
 } from './months'
 
 describe('months', () => {
@@ -54,5 +56,21 @@ describe('months', () => {
         expect(read(qs)).toBe('2026-11')
       },
     )
+  })
+})
+
+describe('shiftMonth and monthDateRange', () => {
+  it('shifts by any number of months, across years', () => {
+    expect(shiftMonth('2026-01', -1)).toBe('2025-12')
+    expect(shiftMonth('2025-12', 1)).toBe('2026-01')
+    expect(shiftMonth('2026-03', -14)).toBe('2025-01')
+    expect(shiftMonth('2026-03', 0)).toBe('2026-03')
+  })
+
+  it('monthDateRange gives the first and last day', () => {
+    expect(monthDateRange('2026-02')).toEqual({ from: '2026-02-01', to: '2026-02-28' })
+    expect(monthDateRange('2028-02')).toEqual({ from: '2028-02-01', to: '2028-02-29' })
+    expect(monthDateRange('2026-12')).toEqual({ from: '2026-12-01', to: '2026-12-31' })
+    expect(monthDateRange('2026-04').to).toBe('2026-04-30')
   })
 })
