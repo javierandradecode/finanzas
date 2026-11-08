@@ -334,12 +334,11 @@ describe('ReportsService (integration)', () => {
     });
 
     it('accepts exactly 60 months and rejects 61, an inverted range and malformed months', async () => {
-      await expect(
-        service.incomeVsExpenses(String(u1), {
-          from: '2021-02',
-          to: '2026-01',
-        }),
-      ).resolves.toMatchObject({ months: expect.any(Array) });
+      const sixty = await service.incomeVsExpenses(String(u1), {
+        from: '2021-02',
+        to: '2026-01',
+      });
+      expect(sixty.months).toHaveLength(60);
       await expect(
         service.incomeVsExpenses(String(u1), {
           from: '2021-01',
