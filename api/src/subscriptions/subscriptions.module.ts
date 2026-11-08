@@ -23,5 +23,6 @@ import { SubscriptionsService } from './subscriptions.service';
     SubscriptionsProcessor,
     SubscriptionsScheduler,
   ],
+  exports: [SubscriptionsService],
 })
 export class SubscriptionsModule {}
