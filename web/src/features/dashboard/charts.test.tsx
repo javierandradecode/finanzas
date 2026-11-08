@@ -62,6 +62,16 @@ describe('MonthlyBars', () => {
     expect(rows[5]).toHaveTextContent('-350,00')
   })
 
+  it('is not empty when there are only expenses (or only income)', () => {
+    const onlyExpenses: IncomeVsExpenses = {
+      from: '2025-09', to: '2026-02',
+      months: months.map((m) => ({ ...m, incomeCents: 0, expenseCents: 500, netCents: -500 })),
+    }
+    wrap(<MonthlyBars flow={onlyExpenses} currency="USD" />)
+    expect(screen.queryByText('Sin movimientos en estos meses.')).toBeNull()
+    expect(screen.getByRole('table', { name: 'Evolución mensual' })).toBeInTheDocument()
+  })
+
   it('shows an empty text when every month is zero', () => {
     const empty: IncomeVsExpenses = {
       from: '2025-09', to: '2026-02',
