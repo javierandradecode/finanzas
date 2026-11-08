@@ -1,0 +1,74 @@
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
+import { filtersToQuery, type TxFilters } from '@/features/transactions/filters'
+import type {
+  CreatePayload,
+  TxType,
+  UpdatePayload,
+} from '@/features/transactions/transaction-form'
+import { api } from './client'
+
+export interface Transaction {
+  _id: string
+  type: TxType
+  amountCents: number
+  date: string
+  accountId?: string
+  toAccountId?: string
+  creditCardId?: string
+  toCreditCardId?: string
+  categoryId?: string
+  subcategoryId?: string
+  note?: string
+  source: 'manual' | 'subscription' | 'installment'
+  subscriptionId?: string
+  installmentPurchaseId?: string
+}
+
+export interface TransactionPage {
+  items: Transaction[]
+  total: number
+  page: number
+  limit: number
+}
+
+export const useTransactions = (filters: TxFilters) =>
+  useQuery({
+    queryKey: ['transactions', filters],
+    queryFn: () => api<TransactionPage>(`/transactions${filtersToQuery(filters)}`),
+    placeholderData: keepPreviousData,
+  })
+
+/** A transaction moves balances and card debt, so those lists must refetch too. */
+function useTransactionMutation<TVars>(fn: (vars: TVars) => Promise<unknown>) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () =>
+      Promise.all(
+        ['transactions', 'accounts', 'credit-cards'].map((key) =>
+          queryClient.invalidateQueries({ queryKey: [key] }),
+        ),
+      ),
+  })
+}
+
+export const useCreateTransaction = () =>
+  useTransactionMutation((body: CreatePayload) =>
+    api<Transaction>('/transactions', { method: 'POST', body }),
+  )
+
+export const useUpdateTransaction = () =>
+  useTransactionMutation(
+    ({ id, ...body }: { id: string } & Partial<UpdatePayload>) =>
+      api<Transaction>(`/transactions/${id}`, { method: 'PATCH', body }),
+  )
+
+export const useDeleteTransaction = () =>
+  useTransactionMutation((id: string) =>
+    api<void>(`/transactions/${id}`, { method: 'DELETE' }),
+  )
