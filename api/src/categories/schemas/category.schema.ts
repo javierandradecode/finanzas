@@ -3,6 +3,18 @@ import { HydratedDocument, Types } from 'mongoose';
 
 export type CategoryType = 'income' | 'expense';
 
+@Schema()
+export class Subcategory {
+  _id!: Types.ObjectId;
+
+  @Prop({ required: true, trim: true })
+  name!: string;
+
+  @Prop({ required: true, default: false })
+  isArchived!: boolean;
+}
+export const SubcategorySchema = SchemaFactory.createForClass(Subcategory);
+
 @Schema({ timestamps: true })
 export class Category {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
@@ -19,6 +31,12 @@ export class Category {
 
   @Prop({ required: true })
   color!: string;
+
+  @Prop({ required: true, default: false })
+  isArchived!: boolean;
+
+  @Prop({ type: [SubcategorySchema], default: [] })
+  subcategories!: Types.DocumentArray<Subcategory>;
 }
 
 export type CategoryDocument = HydratedDocument<Category>;
