@@ -1,5 +1,6 @@
 import {
   chartAmount,
+  formatPercent,
   lastMonthsRange,
   percentOf,
   topWithOthers,
@@ -68,5 +69,13 @@ describe('lastMonthsRange', () => {
   it('supports other counts', () => {
     expect(lastMonthsRange('2026-11', 1)).toEqual({ from: '2026-11', to: '2026-11' })
     expect(lastMonthsRange('2026-03', 12)).toEqual({ from: '2025-04', to: '2026-03' })
+  })
+})
+
+describe('formatPercent', () => {
+  it('writes a Spanish percentage with up to one decimal', () => {
+    expect(formatPercent(25)).toBe('25 %')
+    expect(formatPercent(10.7)).toBe('10,7 %')
+    expect(formatPercent(0)).toBe('0 %')
   })
 })

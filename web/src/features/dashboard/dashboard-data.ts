@@ -41,3 +41,7 @@ export const chartAmount = (cents: number): number => cents / 100
 export function lastMonthsRange(month: string, count = 6): { from: string; to: string } {
   return { from: shiftMonth(month, -(count - 1)), to: month }
 }
+
+/** 10.7 → "10,7 %" (Spanish decimal comma, at most one decimal). */
+export const formatPercent = (p: number): string =>
+  `${new Intl.NumberFormat('es', { maximumFractionDigits: 1 }).format(p)} %`
