@@ -70,7 +70,7 @@ describe('TransactionDialog', () => {
     routeFetch(lists)
     renderDialog()
     await waitLoaded()
-    expect(screen.getByLabelText('Fecha')).toHaveValue(todayLocal())
+    expect(screen.getByLabelText('Fecha')).toHaveAttribute('data-value', todayLocal())
   })
 
   it('creates an expense paid with an account', async () => {
@@ -119,7 +119,7 @@ describe('TransactionDialog', () => {
     expect(screen.getByLabelText('Nota')).toHaveValue('')
     expect(screen.getByLabelText('Categoría')).toHaveValue('')
     expect(screen.getByLabelText('Pagado con')).toHaveValue('account:a1')
-    expect(screen.getByLabelText('Fecha')).toHaveValue(todayLocal())
+    expect(screen.getByLabelText('Fecha')).toHaveAttribute('data-value', todayLocal())
     expect(screen.getByRole('radio', { name: 'Gasto' })).toBeChecked()
     expect(screen.getByLabelText('Monto')).toHaveFocus()
   })

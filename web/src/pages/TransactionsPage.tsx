@@ -13,12 +13,12 @@ import {
   type Transaction,
 } from '@/api/transactions'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { DatePicker } from '@/components/DatePicker'
 import { MonthSelector } from '@/components/MonthSelector'
 import { NativeSelect } from '@/components/NativeSelect'
 import { Segmented } from '@/components/Segmented'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/features/auth/useAuth'
 import { groupByDay } from '@/features/transactions/day-groups'
@@ -192,20 +192,22 @@ export function TransactionsPage() {
             <CardContent className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <div className="space-y-1">
                 <Label htmlFor="f-from">Desde</Label>
-                <Input
+                <DatePicker
                   id="f-from"
-                  type="date"
+                  label="Desde"
+                  clearable
                   value={filters.from ?? ''}
-                  onChange={(e) => setFilters({ from: e.target.value || undefined })}
+                  onChange={(v) => setFilters({ from: v || undefined })}
                 />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="f-to">Hasta</Label>
-                <Input
+                <DatePicker
                   id="f-to"
-                  type="date"
+                  label="Hasta"
+                  clearable
                   value={filters.to ?? ''}
-                  onChange={(e) => setFilters({ to: e.target.value || undefined })}
+                  onChange={(v) => setFilters({ to: v || undefined })}
                 />
               </div>
               <div className="space-y-1">

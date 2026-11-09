@@ -241,14 +241,16 @@ describe('TransactionsPage', () => {
       renderPage()
       await screen.findByText('Mercado')
       await userEvent.click(screen.getByRole('button', { name: 'Más filtros' }))
-      await userEvent.clear(screen.getByLabelText('Desde'))
-      await userEvent.clear(screen.getByLabelText('Hasta'))
+      for (const label of ['Desde', 'Hasta']) {
+        await userEvent.click(screen.getByLabelText(label))
+        await userEvent.click(await screen.findByRole('button', { name: 'Borrar' }))
+      }
       expect(await screen.findByTestId('period')).toHaveTextContent('Todo el historial')
       expect(screen.getByTestId('where')).toHaveTextContent('range=all')
       await waitFor(() => expect(rows()).toHaveLength(2))
       // the marker is a web-only thing
       expect(calls.some((c) => c.path.includes('range'))).toBe(false)
-    })
+    }, 20_000) // opens and closes two calendars
 
     it('a type filter goes to the request and the URL, and resets the page to 1', async () => {
       const calls = routeFetch({

@@ -7,6 +7,7 @@ import {
   useUpdatePurchase,
   type InstallmentPurchase,
 } from '@/api/installment-purchases'
+import { DatePicker } from '@/components/DatePicker'
 import { MoneyInput } from '@/components/MoneyInput'
 import { NativeSelect } from '@/components/NativeSelect'
 import { Button } from '@/components/ui/button'
@@ -200,7 +201,13 @@ function CreateForm({
 
       <div className="space-y-2">
         <Label htmlFor="p-date">Fecha de compra</Label>
-        <Input id="p-date" type="date" {...register('startDate')} />
+        <Controller
+                control={control}
+                name="startDate"
+                render={({ field }) => (
+                  <DatePicker id="p-date" label="Fecha de compra" value={field.value} onChange={field.onChange} />
+                )}
+              />
         <FieldError message={errors.startDate?.message} />
       </div>
 
