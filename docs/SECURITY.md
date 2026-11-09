@@ -4,7 +4,7 @@ Revisión hecha el 2026-11-08 sobre la API (`api/`) y la web (`web/`). Es una re
 
 ## Resumen
 
-- **Aislamiento entre usuarios:** demostrado con una prueba de punta a punta sobre las 52 rutas de la API (48 con datos de usuario y 4 públicas o triviales). No se encontró ninguna fuga.
+- **Aislamiento entre usuarios:** demostrado con una prueba de punta a punta sobre las 53 rutas de la API (49 con datos de usuario y 4 públicas o triviales; incluye la exportación CSV de la 11b). No se encontró ninguna fuga.
 - **Se endureció:** cabeceras de seguridad (`helmet`), límite de intentos, registro cerrable, comprobaciones de arranque en producción y errores 4xx correctos para cuerpos inválidos o demasiado grandes.
 - **Secretos:** ninguno en los 115 commits del historial (en el momento de la revisión).
 - **Dependencias:** 0 vulnerabilidades en lo que se despliega (API y web). Quedan avisos moderados solo en herramientas de desarrollo.
@@ -14,7 +14,7 @@ Revisión hecha el 2026-11-08 sobre la API (`api/`) y la web (`web/`). Es una re
 
 | Control | Evidencia | Resultado |
 |---|---|---|
-| Cada usuario solo ve y modifica lo suyo | `api/src/security/isolation.spec.ts`: dos usuarios con datos de todo tipo; el B recorre cada ruta con ids de A (404), listados y reportes (vacíos o sin datos de A), referencias cruzadas al crear o editar (400/404) y `process-due` (no cobra lo de A); al final los datos de A son idénticos. Falla si aparece una ruta nueva sin caso. | Sin fugas |
+| Cada usuario solo ve y modifica lo suyo (también en `GET /transactions/export`, que añade una celda de texto por fórmulas: ver `common/utils/csv.ts`) | `api/src/security/isolation.spec.ts`: dos usuarios con datos de todo tipo; el B recorre cada ruta con ids de A (404), listados y reportes (vacíos o sin datos de A), referencias cruzadas al crear o editar (400/404) y `process-due` (no cobra lo de A); al final los datos de A son idénticos. Falla si aparece una ruta nueva sin caso. | Sin fugas |
 | La prueba de aislamiento detecta fallos reales | Se quitó a propósito el filtro por `userId` en `AccountsService.findOne` y en `ReportsService`: la prueba falló en las rutas esperadas. | Verificado |
 | Entradas hostiles (operadores de MongoDB, arrays, ids mal formados) | `api/src/security/hostile-input.spec.ts` (41 casos) en query y body; nunca 5xx ni datos ajenos. Se verificó rompiendo `@IsMongoId` y `@IsEmail` a propósito. | Correcto |
 | Asignación masiva (`userId`, `balanceCents`, `source`) | Mismo archivo: los campos no declarados se descartan. | Correcto, ver hallazgo 5 |

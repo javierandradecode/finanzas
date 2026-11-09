@@ -77,6 +77,15 @@ describe('setupApp', () => {
     );
   });
 
+  it('exposes Content-Disposition so the browser can read the download name', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/ping')
+      .set('Origin', 'https://app.example.com');
+    expect(res.headers['access-control-expose-headers']).toMatch(
+      /Content-Disposition/i,
+    );
+  });
+
   it('drops fields that are not in the DTO', async () => {
     await request(app.getHttpServer())
       .post('/api/echo')

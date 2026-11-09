@@ -14,7 +14,11 @@ export function setupApp(app: NestExpressApplication): void {
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new AllExceptionsFilter());
-  app.enableCors({ origin: config.getOrThrow<string>('CORS_ORIGIN') });
+  app.enableCors({
+    origin: config.getOrThrow<string>('CORS_ORIGIN'),
+    // Without this the browser hides the file name of CSV downloads.
+    exposedHeaders: ['Content-Disposition'],
+  });
 
   // Security headers (nosniff, HSTS, no X-Powered-By...).
   app.use(helmet());
