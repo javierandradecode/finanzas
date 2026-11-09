@@ -134,6 +134,20 @@ export class TransactionsService {
     return { items, total, page: q.page, limit: q.limit };
   }
 
+  /** Income and expense totals of everything the filters match (transfers move money, they do not earn or spend it). */
+  async summary(
+    userId: string,
+    q: TransactionFilters,
+  ): Promise<{ incomeCents: number; expenseCents: number }> {
+    const rows = await this.model.aggregate<{ _id: string; total: number }>([
+      { $match: this.buildFilter(userId, q) },
+      { $group: { _id: '$type', total: { $sum: '$amountCents' } } },
+    ]);
+    const total = (type: string) =>
+      rows.find((r) => r._id === type)?.total ?? 0;
+    return { incomeCents: total('income'), expenseCents: total('expense') };
+  }
+
   /** Every transaction matching the filters as CSV text (see `toCsv`). */
   async exportCsv(userId: string, q: TransactionFilters): Promise<string> {
     const filter = this.buildFilter(userId, q);

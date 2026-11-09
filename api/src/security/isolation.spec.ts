@@ -369,6 +369,22 @@ const CASES: Case[] = [
     },
   },
   empty(
+    'GET /api/transactions/summary',
+    (c) => asE(c, 'get', '/transactions/summary'),
+    (body) => expect(body).toEqual({ incomeCents: 0, expenseCents: 0 }),
+  ),
+  {
+    route: 'GET /api/transactions/summary',
+    run: (c) => asB(c, 'get', '/transactions/summary'),
+    check: (res) => {
+      expect(res.status).toBe(200);
+      // A and B are seeded alike (one 5000 income each): leaking A's rows would double it.
+      expect(res.body.incomeCents).toBe(5000);
+      // B's expense (1000) and card expense (2000) at least, plus its installments.
+      expect(res.body.expenseCents).toBeGreaterThanOrEqual(3000);
+    },
+  },
+  empty(
     'GET /api/transactions',
     (c) => asE(c, 'get', '/transactions?limit=100'),
     (body, c) => {
