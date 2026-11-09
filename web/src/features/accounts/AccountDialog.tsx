@@ -4,7 +4,8 @@ import { toast } from 'sonner'
 import type { Account } from '@/api/accounts'
 import { useCreateAccount, useUpdateAccount } from '@/api/accounts'
 import { MoneyInput } from '@/components/MoneyInput'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Segmented } from '@/components/Segmented'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -14,12 +15,15 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { FieldError } from '@/features/auth/AuthShell'
-import { cn } from '@/lib/utils'
 import {
   ACCOUNT_TYPE_LABELS,
   accountSchema,
   type AccountFormValues,
 } from './account-schema'
+
+const TYPE_OPTIONS = (
+  Object.keys(ACCOUNT_TYPE_LABELS) as (keyof typeof ACCOUNT_TYPE_LABELS)[]
+).map((value) => ({ value, label: ACCOUNT_TYPE_LABELS[value] }))
 
 export function AccountDialog({
   open,
@@ -87,33 +91,12 @@ export function AccountDialog({
               control={control}
               name="type"
               render={({ field }) => (
-                // real radio inputs: arrow keys and screen readers work for free
-                <div role="radiogroup" aria-labelledby="account-type-label" className="flex gap-2">
-                  {(Object.keys(ACCOUNT_TYPE_LABELS) as (keyof typeof ACCOUNT_TYPE_LABELS)[]).map(
-                    (type) => (
-                      <label
-                        key={type}
-                        className={cn(
-                          buttonVariants({
-                            size: 'sm',
-                            variant: field.value === type ? 'default' : 'outline',
-                          }),
-                          'cursor-pointer has-focus-visible:ring-3 has-focus-visible:ring-ring/50',
-                        )}
-                      >
-                        <input
-                          type="radio"
-                          name="account-type"
-                          className="sr-only"
-                          value={type}
-                          checked={field.value === type}
-                          onChange={() => field.onChange(type)}
-                        />
-                        {ACCOUNT_TYPE_LABELS[type]}
-                      </label>
-                    ),
-                  )}
-                </div>
+                <Segmented
+                  labelledBy="account-type-label"
+                  value={field.value}
+                  options={TYPE_OPTIONS}
+                  onChange={field.onChange}
+                />
               )}
             />
           </div>

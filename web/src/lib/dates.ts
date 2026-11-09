@@ -24,6 +24,18 @@ export function formatDateUtc(iso: string): string {
   }).format(new Date(iso))
 }
 
+/** "martes 10 de marzo" (UTC day); the year only when it is not the current one. */
+export function formatDayUtc(iso: string, now = new Date()): string {
+  const date = new Date(iso)
+  return new Intl.DateTimeFormat('es', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: date.getUTCFullYear() === now.getFullYear() ? undefined : 'numeric',
+    timeZone: 'UTC',
+  }).format(date)
+}
+
 /** True for a real calendar date written as YYYY-MM-DD (rejects 2026-02-31). */
 export function isValidDateText(s: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false

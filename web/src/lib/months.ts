@@ -28,6 +28,15 @@ export function monthDateRange(key: string): { from: string; to: string } {
   return { from: `${key}-01`, to: `${key}-${pad(lastDay)}` }
 }
 
+/** The month a YYYY-MM-DD range covers when it is exactly one whole month; otherwise null. */
+export function monthOfRange(from?: string, to?: string): string | null {
+  if (!from || !to || !/^\d{4}-\d{2}-\d{2}$/.test(from)) return null
+  const key = from.slice(0, 7)
+  if (!isMonthKey(key)) return null
+  const whole = monthDateRange(key)
+  return from === whole.from && to === whole.to ? key : null
+}
+
 /** Signed number of months from `from` to `to`. */
 export function monthsBetween(from: string, to: string): number {
   const [fy, fm] = from.split('-').map(Number)

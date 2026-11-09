@@ -15,9 +15,12 @@ const TYPES: TxType[] = ['income', 'expense', 'transfer']
 /** Reads the filters from the URL; with no dates at all, the current month rules. */
 export function filtersFromSearch(params: URLSearchParams, now = new Date()): TxFilters {
   const hasDates = params.has('from') || params.has('to')
+  // range=all: the person emptied the dates on purpose, so do not fall back to the month
   const range = hasDates
     ? { from: params.get('from') || undefined, to: params.get('to') || undefined }
-    : monthRangeLocal(now)
+    : params.get('range') === 'all'
+      ? { from: undefined, to: undefined }
+      : monthRangeLocal(now)
 
   const type = params.get('type') as TxType | null
   const rawPage = params.get('page') ?? ''
@@ -33,7 +36,7 @@ export function filtersFromSearch(params: URLSearchParams, now = new Date()): Tx
   }
 }
 
-/** Only non-empty filters go in the URL; page 1 is implicit. */
+/** Only non-empty filters go in the URL; page 1 is implicit. `range=all` marks "no date limits" (web only). */
 export function filtersToSearch(f: TxFilters): URLSearchParams {
   const p = new URLSearchParams()
   if (f.from) p.set('from', f.from)
@@ -41,6 +44,7 @@ export function filtersToSearch(f: TxFilters): URLSearchParams {
   if (f.type) p.set('type', f.type)
   if (f.accountId) p.set('accountId', f.accountId)
   if (f.categoryId) p.set('categoryId', f.categoryId)
+  if (!f.from && !f.to) p.set('range', 'all')
   if (f.page > 1) p.set('page', String(f.page))
   return p
 }
@@ -49,6 +53,7 @@ export function filtersToSearch(f: TxFilters): URLSearchParams {
 export function filtersToQuery(f: TxFilters, limit = 20): string {
   const p = filtersToSearch({ ...f, page: 1 })
   p.delete('page')
+  p.delete('range')
   p.set('page', String(f.page))
   p.set('limit', String(limit))
   return `?${p.toString()}`
@@ -57,6 +62,7 @@ export function filtersToQuery(f: TxFilters, limit = 20): string {
 /** Query string for GET /transactions/export: the active filters, no paging. */
 export function filtersToExportQuery(f: TxFilters): string {
   const p = filtersToSearch({ ...f, page: 1 })
+  p.delete('range')
   const qs = p.toString()
   return qs ? `?${qs}` : ''
 }

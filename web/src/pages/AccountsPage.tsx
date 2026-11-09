@@ -1,5 +1,5 @@
 import { MoreHorizontal, Plus } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
@@ -28,6 +28,7 @@ import { groupAccounts } from '@/features/accounts/group'
 import { useAuth } from '@/features/auth/useAuth'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
+import { useSlow } from '@/lib/use-slow'
 
 const errorText = (e: unknown) =>
   e instanceof Error ? e.message : 'Ocurrió un error inesperado'
@@ -37,20 +38,6 @@ const SHARE_TONE: Record<AccountType, string> = {
   checking: 'bg-primary',
   savings: 'bg-primary/60',
   cash: 'bg-primary/30',
-}
-
-/** True once `active` has lasted `ms` without ending (the free host may be waking up). */
-function useSlow(active: boolean, ms = 4000) {
-  const [slow, setSlow] = useState(false)
-  useEffect(() => {
-    if (!active) return
-    const timer = setTimeout(() => setSlow(true), ms)
-    return () => {
-      clearTimeout(timer)
-      setSlow(false)
-    }
-  }, [active, ms])
-  return active && slow
 }
 
 function AccountsSkeleton() {

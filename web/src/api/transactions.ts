@@ -47,6 +47,21 @@ export const useTransactions = (filters: TxFilters) =>
     placeholderData: keepPreviousData,
   })
 
+export interface TransactionSummary {
+  incomeCents: number
+  expenseCents: number
+}
+
+/** Income and expense totals of everything the filters match (not just the visible page). */
+export const useTransactionsSummary = (filters: TxFilters) =>
+  useQuery({
+    // the page does not change the totals, so it is not part of the key
+    queryKey: ['transactions', 'summary', { ...filters, page: 1 }],
+    queryFn: () =>
+      api<TransactionSummary>(`/transactions/summary${filtersToExportQuery(filters)}`),
+    placeholderData: keepPreviousData,
+  })
+
 /** A transaction moves balances and card debt, so those lists must refetch too. */
 function useTransactionMutation<TVars>(fn: (vars: TVars) => Promise<unknown>) {
   const queryClient = useQueryClient()

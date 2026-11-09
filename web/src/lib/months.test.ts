@@ -3,6 +3,7 @@ import {
   isMonthKey,
   monthDateRange,
   monthFromSearch,
+  monthOfRange,
   monthsBetween,
   nextMonth,
   previousMonth,
@@ -72,5 +73,26 @@ describe('shiftMonth and monthDateRange', () => {
     expect(monthDateRange('2028-02')).toEqual({ from: '2028-02-01', to: '2028-02-29' })
     expect(monthDateRange('2026-12')).toEqual({ from: '2026-12-01', to: '2026-12-31' })
     expect(monthDateRange('2026-04').to).toBe('2026-04-30')
+  })
+})
+
+describe('monthOfRange', () => {
+  it('names the month when the range is exactly one whole month', () => {
+    expect(monthOfRange('2026-03-01', '2026-03-31')).toBe('2026-03')
+    expect(monthOfRange('2026-02-01', '2026-02-28')).toBe('2026-02')
+    expect(monthOfRange('2028-02-01', '2028-02-29')).toBe('2028-02')
+    expect(monthOfRange('2026-12-01', '2026-12-31')).toBe('2026-12')
+  })
+
+  it.each([
+    ['2026-03-02', '2026-03-31'],
+    ['2026-03-01', '2026-03-30'],
+    ['2026-03-01', '2026-04-30'],
+    ['2026-03-01', undefined],
+    [undefined, '2026-03-31'],
+    [undefined, undefined],
+    ['2026-02-01', '2026-02-29'], // not a real day: not a whole month
+  ])('is null for %s .. %s', (from, to) => {
+    expect(monthOfRange(from, to)).toBeNull()
   })
 })

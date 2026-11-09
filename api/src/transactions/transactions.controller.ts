@@ -34,6 +34,12 @@ export class TransactionsController {
     return this.transactions.findAll(user.userId, query);
   }
 
+  /** Declared before `:id` so "summary" is not read as an id. */
+  @Get('summary')
+  summary(@CurrentUser() user: AuthUser, @Query() query: TransactionFilters) {
+    return this.transactions.summary(user.userId, query);
+  }
+
   /** Declared before `:id` so "export" is not read as an id. */
   @Get('export')
   async export(

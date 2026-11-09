@@ -48,6 +48,27 @@ describe('transaction filters', () => {
     )
   })
 
+  it('reads range=all as "no date limits" instead of the current month', () => {
+    expect(parse('range=all')).toEqual({ page: 1 })
+    expect(parse('range=all&type=expense')).toEqual({ type: 'expense', page: 1 })
+  })
+
+  it('writes range=all when there are no dates, so emptying both dates keeps them empty', () => {
+    expect(filtersToSearch({ page: 1 }).toString()).toBe('range=all')
+    expect(filtersToSearch({ type: 'income', page: 2 }).toString()).toBe(
+      'type=income&range=all&page=2',
+    )
+    const f = { type: 'income' as const, page: 2 }
+    expect(filtersFromSearch(filtersToSearch(f), now)).toEqual(f)
+    // with any date given there is no range marker
+    expect(filtersToSearch({ from: '2026-01-01', page: 1 }).toString()).toBe('from=2026-01-01')
+  })
+
+  it('never sends range to the API or to the export', () => {
+    expect(filtersToQuery({ page: 1 })).toBe('?page=1&limit=20')
+    expect(filtersToExportQuery({ type: 'expense', page: 1 })).toBe('?type=expense')
+  })
+
   it('builds the API query with the limit and only present filters', () => {
     expect(
       filtersToQuery({ from: '2026-03-01', to: '2026-03-31', type: 'expense', page: 2 }),
