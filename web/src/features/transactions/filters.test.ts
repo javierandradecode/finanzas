@@ -1,4 +1,4 @@
-import { filtersFromSearch, filtersToQuery, filtersToSearch } from './filters'
+import { filtersFromSearch, filtersToExportQuery, filtersToQuery, filtersToSearch } from './filters'
 
 const now = new Date(2026, 2, 15)
 const parse = (qs: string) => filtersFromSearch(new URLSearchParams(qs), now)
@@ -53,5 +53,12 @@ describe('transaction filters', () => {
       filtersToQuery({ from: '2026-03-01', to: '2026-03-31', type: 'expense', page: 2 }),
     ).toBe('?from=2026-03-01&to=2026-03-31&type=expense&page=2&limit=20')
     expect(filtersToQuery({ page: 1 } as never, 50)).toBe('?page=1&limit=50')
+  })
+
+  it('builds the export query without page and without empty filters', () => {
+    expect(
+      filtersToExportQuery({ from: '2026-03-01', to: '2026-03-31', type: 'income', page: 3 }),
+    ).toBe('?from=2026-03-01&to=2026-03-31&type=income')
+    expect(filtersToExportQuery({ page: 2 })).toBe('')
   })
 })

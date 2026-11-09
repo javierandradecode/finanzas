@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { Download, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -7,6 +7,7 @@ import { useCategories } from '@/api/categories'
 import { useCreditCards } from '@/api/credit-cards'
 import {
   useDeleteTransaction,
+  useExportTransactions,
   useTransactions,
   type Transaction,
 } from '@/api/transactions'
@@ -45,6 +46,7 @@ export function TransactionsPage() {
   const cards = useCreditCards(true).data
   const categories = useCategories(true).data
   const remove = useDeleteTransaction()
+  const exportCsv = useExportTransactions()
 
   const [dialog, setDialog] = useState<{ tx?: Transaction } | null>(null)
   const [toDelete, setToDelete] = useState<Transaction | null>(null)
@@ -69,9 +71,22 @@ export function TransactionsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">Movimientos</h1>
-        <Button onClick={() => setDialog({})}>
-          <Plus className="size-4" /> Nuevo movimiento
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            disabled={exportCsv.isPending}
+            onClick={() =>
+              exportCsv.mutate(filters, {
+                onError: (e) => toast.error(errorText(e)),
+              })
+            }
+          >
+            <Download className="size-4" /> Exportar CSV
+          </Button>
+          <Button onClick={() => setDialog({})}>
+            <Plus className="size-4" /> Nuevo movimiento
+          </Button>
+        </div>
       </div>
 
       <Card>

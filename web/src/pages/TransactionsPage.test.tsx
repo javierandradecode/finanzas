@@ -218,4 +218,67 @@ describe('TransactionsPage', () => {
     expect(await screen.findByText('Editar movimiento')).toBeInTheDocument()
     expect(await screen.findByLabelText('Monto')).toHaveValue('1234,56')
   })
+
+  describe('CSV export', () => {
+    const EXPORT = '/transactions/export?from=2026-03-01&to=2026-03-31'
+    const csv = (name = 'movimientos-2026-03-15.csv') =>
+      new Response('x', {
+        status: 200,
+        headers: { 'Content-Disposition': `attachment; filename="${name}"` },
+      })
+    let click: ReturnType<typeof vi.spyOn>
+    beforeEach(() => {
+      URL.createObjectURL = vi.fn(() => 'blob:x')
+      URL.revokeObjectURL = vi.fn()
+      click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    })
+    afterEach(() => click.mockRestore())
+
+    it('downloads with the filters of the URL and without page', async () => {
+      const calls = routeFetch({
+        ...lists,
+        [`GET ${MARCH}`]: () => page([expense]),
+        [`GET ${EXPORT}&type=expense`]: () => csv(),
+      })
+      renderPage('/movimientos?type=expense&page=2')
+      await userEvent.click(await screen.findByRole('button', { name: /exportar csv/i }))
+      await waitFor(() => expect(click).toHaveBeenCalledTimes(1))
+      expect(calls.some((c) => c.path === `${EXPORT}&type=expense`)).toBe(true)
+      expect(URL.createObjectURL).toHaveBeenCalledTimes(1)
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:x')
+    })
+
+    it('is disabled while downloading, so a double click downloads once', async () => {
+      let release: (r: Response) => void = () => {}
+      const calls = routeFetch({
+        ...lists,
+        [`GET ${MARCH}`]: () => page([expense]),
+        [`GET ${EXPORT}`]: () =>
+          new Promise<Response>((res) => {
+            release = res
+          }) as never,
+      })
+      renderPage()
+      const button = await screen.findByRole('button', { name: /exportar csv/i })
+      await userEvent.click(button)
+      await waitFor(() => expect(button).toBeDisabled())
+      await userEvent.click(button)
+      release(csv())
+      await waitFor(() => expect(click).toHaveBeenCalledTimes(1))
+      expect(calls.filter((c) => c.path.startsWith('/transactions/export'))).toHaveLength(1)
+      await waitFor(() => expect(button).toBeEnabled())
+    })
+
+    it('shows the API message when the export fails', async () => {
+      routeFetch({
+        ...lists,
+        [`GET ${MARCH}`]: () => page([expense]),
+        [`GET ${EXPORT}`]: () => jsonResponse(400, { message: 'Too many transactions' }),
+      })
+      renderPage()
+      await userEvent.click(await screen.findByRole('button', { name: /exportar csv/i }))
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Too many transactions'))
+      expect(click).not.toHaveBeenCalled()
+    })
+  })
 })
