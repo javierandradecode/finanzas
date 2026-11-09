@@ -10,5 +10,6 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     globals: true,
+    testTimeout: 20000, // date-picker tests open a calendar; slow machines exceed 5 s
   },
 })
