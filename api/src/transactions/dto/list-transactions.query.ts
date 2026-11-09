@@ -11,7 +11,8 @@ import {
 import { TX_TYPES } from '../schemas/transaction.schema';
 import type { TxType } from '../transaction-effects';
 
-export class ListTransactionsQuery {
+/** Filters shared by the list and the CSV export. */
+export class TransactionFilters {
   /** ISO 8601 date or datetime, inclusive. */
   @IsOptional()
   @IsISO8601()
@@ -34,7 +35,9 @@ export class ListTransactionsQuery {
   @IsOptional()
   @IsMongoId()
   categoryId?: string;
+}
 
+export class ListTransactionsQuery extends TransactionFilters {
   @Type(() => Number)
   @IsInt()
   @Min(1)

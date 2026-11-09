@@ -8,11 +8,16 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, QueryFilter, Types } from 'mongoose';
 import { AccountsService } from '../accounts/accounts.service';
 import { CategoriesService } from '../categories/categories.service';
+import { CsvCell, toCsv } from '../common/utils/csv';
 import { endOfRange } from '../common/utils/date-range';
 import { definedOnly } from '../common/utils/defined-only';
 import { CreditCardsService } from '../credit-cards/credit-cards.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { ListTransactionsQuery, Page } from './dto/list-transactions.query';
+import {
+  ListTransactionsQuery,
+  Page,
+  TransactionFilters,
+} from './dto/list-transactions.query';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import {
   Transaction,
@@ -30,6 +35,20 @@ export type CreateTransactionInput = CreateTransactionDto & {
 };
 
 type Ref = Types.ObjectId | string | null | undefined;
+
+/** Most rows one CSV export may hold. */
+export const EXPORT_MAX_ROWS = 50_000;
+
+const TYPE_LABEL = {
+  income: 'ingreso',
+  expense: 'gasto',
+  transfer: 'transferencia',
+} as const;
+const SOURCE_LABEL = {
+  manual: 'manual',
+  subscription: 'suscripción',
+  installment: 'cuota',
+} as const;
 
 const oid = (id: string) => new Types.ObjectId(id);
 const optOid = (id?: string | null) => (id ? oid(id) : undefined);
@@ -76,10 +95,10 @@ export class TransactionsService {
     return doc;
   }
 
-  async findAll(
+  private buildFilter(
     userId: string,
-    q: ListTransactionsQuery,
-  ): Promise<Page<TransactionDocument>> {
+    q: TransactionFilters,
+  ): QueryFilter<Transaction> {
     const filter: QueryFilter<Transaction> = { userId: oid(userId) };
     if (q.type) filter.type = q.type;
     if (q.categoryId) filter.categoryId = oid(q.categoryId);
@@ -94,6 +113,14 @@ export class TransactionsService {
       if (q.from) filter.date.$gte = new Date(q.from);
       if (q.to) filter.date.$lte = endOfRange(q.to);
     }
+    return filter;
+  }
+
+  async findAll(
+    userId: string,
+    q: ListTransactionsQuery,
+  ): Promise<Page<TransactionDocument>> {
+    const filter = this.buildFilter(userId, q);
 
     const [items, total] = await Promise.all([
       this.model
@@ -105,6 +132,62 @@ export class TransactionsService {
       this.model.countDocuments(filter).exec(),
     ]);
     return { items, total, page: q.page, limit: q.limit };
+  }
+
+  /** Every transaction matching the filters as CSV text (see `toCsv`). */
+  async exportCsv(userId: string, q: TransactionFilters): Promise<string> {
+    const filter = this.buildFilter(userId, q);
+    if ((await this.model.countDocuments(filter).exec()) > EXPORT_MAX_ROWS) {
+      throw new BadRequestException(
+        `Too many transactions to export (max ${EXPORT_MAX_ROWS}); narrow the filtros`,
+      );
+    }
+    const [docs, accounts, cards, categories] = await Promise.all([
+      this.model.find(filter).sort({ date: -1, _id: -1 }).lean().exec(),
+      this.accounts.findAll(userId, true),
+      this.cards.findAll(userId, true),
+      this.categories.findAll(userId, { includeArchived: true }),
+    ]);
+    const accountName = new Map(accounts.map((x) => [String(x._id), x.name]));
+    const cardName = new Map(cards.map((x) => [String(x._id), x.name]));
+    const categoryName = new Map(
+      categories.map((x) => [String(x._id), x.name]),
+    );
+    const subName = new Map(
+      categories.flatMap((c) =>
+        c.subcategories.map((s) => [String(s._id), s.name] as const),
+      ),
+    );
+    const name = (m: Map<string, string>, id?: Types.ObjectId) =>
+      id ? m.get(String(id)) : undefined;
+
+    const rows: CsvCell[][] = [
+      [
+        'fecha',
+        'tipo',
+        'monto',
+        'cuenta',
+        'cuenta destino',
+        'tarjeta',
+        'categoría',
+        'subcategoría',
+        'nota',
+        'origen',
+      ],
+      ...docs.map((t) => [
+        t.date.toISOString().slice(0, 10),
+        TYPE_LABEL[t.type],
+        (t.type === 'expense' ? -t.amountCents : t.amountCents) / 100,
+        name(accountName, t.accountId),
+        name(accountName, t.toAccountId) ?? name(cardName, t.toCreditCardId),
+        name(cardName, t.creditCardId),
+        name(categoryName, t.categoryId),
+        name(subName, t.subcategoryId),
+        t.note,
+        SOURCE_LABEL[t.source],
+      ]),
+    ];
+    return toCsv(rows);
   }
 
   create(
