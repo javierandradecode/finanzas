@@ -9,6 +9,7 @@ import {
   useUpdateSubscription,
   type Subscription,
 } from '@/api/subscriptions'
+import { DatePicker } from '@/components/DatePicker'
 import { MoneyInput } from '@/components/MoneyInput'
 import { NativeSelect } from '@/components/NativeSelect'
 import { Button } from '@/components/ui/button'
@@ -173,7 +174,13 @@ function SubscriptionForm({
 
       <div className="space-y-2">
         <Label htmlFor="sub-date">Próximo cobro</Label>
-        <Input id="sub-date" type="date" {...register('nextDate')} />
+        <Controller
+                control={control}
+                name="nextDate"
+                render={({ field }) => (
+                  <DatePicker id="sub-date" label="Próximo cobro" value={field.value} onChange={field.onChange} />
+                )}
+              />
         <FieldError message={errors.nextDate?.message} />
         {isPastDate(nextDate, todayLocal()) && (
           <p className="text-sm text-amber-600 dark:text-amber-400">

@@ -1,4 +1,4 @@
-import { formatDateUtc, formatDayUtc, formatMonth, formatMonthShort, monthRangeLocal, todayLocal } from './dates'
+import { formatDateUtc, formatDayUtc, formatMonth, parseYmd, toYmd, formatMonthShort, monthRangeLocal, todayLocal } from './dates'
 
 describe('dates', () => {
   it('todayLocal uses the local calendar, not UTC', () => {
@@ -53,5 +53,24 @@ describe('formatDayUtc', () => {
   })
   it('shows the UTC day even late in the evening UTC', () => {
     expect(formatDayUtc('2026-03-10T23:59:00.000Z', now)).toMatch(/10 de marzo/)
+  })
+})
+
+describe('parseYmd and toYmd', () => {
+  it('round-trips real dates through the local calendar', () => {
+    for (const s of ['2026-03-01', '2026-03-31', '2028-02-29', '2026-12-31', '2026-01-01']) {
+      expect(toYmd(parseYmd(s)!)).toBe(s)
+    }
+  })
+
+  it('is the same day whatever the time of day', () => {
+    expect(toYmd(new Date(2026, 2, 31, 0, 0, 0))).toBe('2026-03-31')
+    expect(toYmd(new Date(2026, 2, 31, 23, 59, 59))).toBe('2026-03-31')
+  })
+
+  it('is undefined for text that is not a real date', () => {
+    for (const s of ['', '2026-02-31', '2026-13-01', 'hoy', '2026-3-5']) {
+      expect(parseYmd(s)).toBeUndefined()
+    }
   })
 })

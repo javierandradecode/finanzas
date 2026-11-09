@@ -128,3 +128,52 @@
     @apply font-sans;
     }
 }
+
+/* Calendar (react-day-picker): its own variables, tied to the app tokens so light and dark just work. */
+.rdp-root {
+  --rdp-accent-color: var(--primary);
+  --rdp-accent-background-color: color-mix(in oklch, var(--primary) 14%, transparent);
+  --rdp-day-height: 2.25rem;
+  --rdp-day-width: 2.25rem;
+  --rdp-day_button-height: 2.25rem;
+  --rdp-day_button-width: 2.25rem;
+  --rdp-day_button-border-radius: var(--radius-md);
+  --rdp-day_button-border: 1px solid transparent;
+  --rdp-selected-border: 1px solid transparent;
+  --rdp-nav_button-height: 2rem;
+  --rdp-nav_button-width: 2rem;
+  --rdp-nav-height: 2rem;
+  --rdp-weekday-opacity: 1;
+  --rdp-outside-opacity: 0.45;
+  font-size: 0.875rem;
+}
+.rdp-root .rdp-weekday {
+  color: var(--muted-foreground);
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+.rdp-root .rdp-selected .rdp-day_button {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+}
+.rdp-root .rdp-today:not(.rdp-selected) .rdp-day_button {
+  background: var(--accent);
+  font-weight: 600;
+}
+.rdp-root .rdp-day_button:hover:not(:disabled) {
+  background: var(--accent);
+}
+.rdp-root .rdp-selected .rdp-day_button:hover {
+  background: var(--primary);
+}
+.rdp-root .rdp-day_button:focus-visible,
+.rdp-root .rdp-button_previous:focus-visible,
+.rdp-root .rdp-button_next:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.rdp-root .rdp-dropdown option {
+  background: var(--popover);
+  color: var(--popover-foreground);
+}

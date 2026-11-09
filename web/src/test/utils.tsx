@@ -1,3 +1,5 @@
+import { screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
@@ -60,4 +62,18 @@ export function routeFetch(routes: Record<string, () => Response | Promise<Respo
     }),
   )
   return calls
+}
+
+/**
+ * Picks a date in a DatePicker: opens it from its label, chooses the year and
+ * month in the lists (works for any date) and presses the day.
+ */
+export async function pickDate(label: string, ymd: string) {
+  const [year, month] = ymd.split('-')
+  await userEvent.click(screen.getByLabelText(label))
+  await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Año' }), year)
+  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Mes' }), String(Number(month) - 1))
+  const day = document.querySelector(`[data-day="${ymd}"] button`)
+  if (!day) throw new Error(`No day button for ${ymd}`)
+  await userEvent.click(day)
 }

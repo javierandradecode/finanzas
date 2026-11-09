@@ -9,6 +9,7 @@ import {
   useUpdateTransaction,
   type Transaction,
 } from '@/api/transactions'
+import { DatePicker } from '@/components/DatePicker'
 import { MoneyInput } from '@/components/MoneyInput'
 import { NativeSelect } from '@/components/NativeSelect'
 import { Segmented } from '@/components/Segmented'
@@ -233,7 +234,13 @@ function TransactionForm({
             </div>
             <div className="space-y-2">
               <Label htmlFor="tx-date">Fecha</Label>
-              <Input id="tx-date" type="date" {...register('date')} />
+              <Controller
+                control={control}
+                name="date"
+                render={({ field }) => (
+                  <DatePicker id="tx-date" label="Fecha" value={field.value} onChange={field.onChange} />
+                )}
+              />
               <FieldError message={errors.date?.message} />
             </div>
           </div>

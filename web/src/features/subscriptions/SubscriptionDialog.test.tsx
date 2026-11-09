@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
 import type { Subscription } from '@/api/subscriptions'
 import { todayLocal } from '@/lib/dates'
-import { jsonResponse, makeClient, routeFetch } from '@/test/utils'
+import { jsonResponse, makeClient, pickDate, routeFetch } from '@/test/utils'
 import { SubscriptionDialog } from './SubscriptionDialog'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
@@ -134,7 +134,7 @@ describe('SubscriptionDialog', () => {
     routeFetch(lists)
     renderDialog()
     await loaded()
-    expect(screen.getByLabelText('Próximo cobro')).toHaveValue(todayLocal())
+    expect(screen.getByLabelText('Próximo cobro')).toHaveAttribute('data-value', todayLocal())
   })
 
   it('warns about a past date but still saves', async () => {
@@ -142,9 +142,7 @@ describe('SubscriptionDialog', () => {
     renderDialog()
     await loaded()
     await fillNew()
-    const date = screen.getByLabelText('Próximo cobro')
-    await userEvent.clear(date)
-    await userEvent.type(date, '2020-01-15')
+    await pickDate('Próximo cobro', '2020-01-15')
     expect(await screen.findByText(/Se cobrarán los períodos vencidos/)).toBeInTheDocument()
     await save()
     await waitFor(() => expect(toast.success).toHaveBeenCalled())

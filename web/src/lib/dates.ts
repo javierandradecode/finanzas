@@ -36,6 +36,17 @@ export function formatDayUtc(iso: string, now = new Date()): string {
   }).format(date)
 }
 
+/** A real YYYY-MM-DD date as a Date at local midnight (what a calendar works with); undefined if it is not one. */
+export function parseYmd(s: string): Date | undefined {
+  if (!isValidDateText(s)) return undefined
+  const [y, m, d] = s.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+/** The inverse: a Date's day on the local calendar, as YYYY-MM-DD (never goes through UTC). */
+export const toYmd = (date: Date): string =>
+  ymd(date.getFullYear(), date.getMonth(), date.getDate())
+
 /** True for a real calendar date written as YYYY-MM-DD (rejects 2026-02-31). */
 export function isValidDateText(s: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false

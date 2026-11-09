@@ -1,12 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { useAccounts } from '@/api/accounts'
 import { usePayInstallment, type InstallmentPurchase } from '@/api/installment-purchases'
 import { NativeSelect } from '@/components/NativeSelect'
+import { DatePicker } from '@/components/DatePicker'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { FieldError } from '@/features/auth/AuthShell'
 import { useAuth } from '@/features/auth/useAuth'
@@ -34,6 +34,7 @@ export function PayInstallmentDialog({
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<PayInstallmentValues>({
@@ -79,7 +80,13 @@ export function PayInstallmentDialog({
           </div>
           <div className="space-y-2">
             <Label htmlFor="pay-date">Fecha</Label>
-            <Input id="pay-date" type="date" {...register('date')} />
+            <Controller
+                control={control}
+                name="date"
+                render={({ field }) => (
+                  <DatePicker id="pay-date" label="Fecha" value={field.value} onChange={field.onChange} />
+                )}
+              />
             <FieldError message={errors.date?.message} />
           </div>
           <Button type="submit" className="w-full" disabled={isSubmitting}>
