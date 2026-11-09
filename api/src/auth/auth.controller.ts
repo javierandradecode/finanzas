@@ -1,11 +1,14 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   NotFoundException,
   Post,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { StrictRateLimit } from '../security/strict-rate-limit.decorator';
 import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
 import type { AuthResponse, AuthUser } from './auth.types';
@@ -19,15 +22,22 @@ export class AuthController {
   constructor(
     private readonly auth: AuthService,
     private readonly users: UsersService,
+    private readonly config: ConfigService,
   ) {}
 
   @Public()
+  @StrictRateLimit()
   @Post('register')
   register(@Body() dto: RegisterDto): Promise<AuthResponse> {
+    // ALLOW_REGISTRATION=false: a personal deployment that nobody else can join.
+    if (this.config.get<boolean>('ALLOW_REGISTRATION') === false) {
+      throw new ForbiddenException('Registration is closed');
+    }
     return this.auth.register(dto);
   }
 
   @Public()
+  @StrictRateLimit()
   @HttpCode(200)
   @Post('login')
   login(@Body() dto: LoginDto): Promise<AuthResponse> {
