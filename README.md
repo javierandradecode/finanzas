@@ -100,6 +100,12 @@ Nunca subas un `.env` a git (ya está en `.gitignore`).
 4. **Tu cuenta.** Abre la web, regístrate e inicia sesión. Después cambia `ALLOW_REGISTRATION` a `false` en la API y guarda: nadie más podrá crear cuentas (tu login sigue funcionando).
 5. **Después de cada cambio de variables** Render redespliega la API sola; la web hay que redesplegarla si cambias `VITE_API_URL` (se incorpora al compilar).
 
+Si algo falla:
+
+- **La API no arranca con `CORS_ORIGIN: must be an https:// URL`:** la variable está vacía o sin `https://`. Pon la URL de la web.
+- **La web da `Not Found` con `x-render-routing: no-server`:** estás usando una URL que no es la del servicio. Cada servicio tiene su propio sufijo (`finanzas-api-xxxx`, `finanzas-web-yyyy`); cópiala del panel.
+- **Login o registro dan `Internal server error` aunque `/api/health` diga `db: up`:** `MONGODB_URI` no termina en `/finanzas` o el usuario de Atlas no tiene `readWrite` sobre esa base.
+
 Notas del plan gratuito:
 
 - **El servicio duerme** tras unos 15 minutos sin tráfico: la primera petición tarda hasta un minuto. Si quieres evitarlo, un servicio de pings gratuito (por ejemplo cron-job.org) puede llamar a `/api/health` cada 10 minutos.

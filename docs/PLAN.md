@@ -77,7 +77,7 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 ## Fase 11 — Cierre
 - [x] Revisión de seguridad (filtrado por usuario, validaciones, secretos)
 - [x] Exportar movimientos a CSV
-- [x] Despliegue: API y web en un servicio gratuito + Atlas (configuración lista en `render.yaml`; falta ejecutar los pasos del README con tus cuentas)
+- [x] Despliegue: API y web en un servicio gratuito + Atlas (desplegado en Render + Atlas el 2026-11-09 siguiendo el README; registro cerrado con `ALLOW_REGISTRATION=false`)
 - [x] README con instrucciones de instalación
 
 ## Ideas para después
