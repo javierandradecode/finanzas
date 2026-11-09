@@ -1,6 +1,8 @@
 import { Menu } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Outlet } from 'react-router-dom'
+import { toast } from 'sonner'
+import { useProcessDue } from '@/api/subscriptions'
 import { Sidebar } from '@/components/Sidebar'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,6 +14,28 @@ import {
 
 export function AppLayout() {
   const [open, setOpen] = useState(false)
+
+  // A free host may sleep through the nightly job, so on opening the app we
+  // charge whatever is due. The ref keeps StrictMode's double mount to one call.
+  const processDue = useProcessDue()
+  const collected = useRef(false)
+  useEffect(() => {
+    if (collected.current) return
+    collected.current = true
+    processDue.mutate(undefined, {
+      onSuccess: ({ charged }) => {
+        if (charged > 0) {
+          toast.success(
+            charged === 1
+              ? 'Se registró 1 cobro de suscripción'
+              : `Se registraron ${charged} cobros de suscripciones`,
+          )
+        }
+      },
+      onError: (e) => console.error('No se pudieron cobrar las suscripciones', e),
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="min-h-screen md:grid md:grid-cols-[16rem_1fr]">

@@ -77,8 +77,8 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 ## Fase 11 — Cierre
 - [x] Revisión de seguridad (filtrado por usuario, validaciones, secretos)
 - [x] Exportar movimientos a CSV
-- [ ] Despliegue: API y web en un servicio gratuito + Atlas
-- [ ] README con instrucciones de instalación
+- [x] Despliegue: API y web en un servicio gratuito + Atlas (configuración lista en `render.yaml`; falta ejecutar los pasos del README con tus cuentas)
+- [x] README con instrucciones de instalación
 
 ## Ideas para después
 - Migrar el frontend a Next.js (práctica para el mercado laboral)

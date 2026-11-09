@@ -39,7 +39,7 @@ Revisión hecha el 2026-11-08 sobre la API (`api/`) y la web (`web/`). Es una re
 
 ## Riesgos aceptados
 
-- **Token en `localStorage`.** Un script malicioso que se ejecutara en la página (XSS) podría leerlo. Pasar a cookies `httpOnly` exigiría protección CSRF y cambios en la API; no compensa en una app personal. Mitigación: React escapa el contenido por defecto, no hay `dangerouslySetInnerHTML` y se recomienda una política de contenido (CSP) en el alojamiento (Fase 11c).
+- **Token en `localStorage`.** Un script malicioso que se ejecutara en la página (XSS) podría leerlo. Pasar a cookies `httpOnly` exigiría protección CSRF y cambios en la API; no compensa en una app personal. Mitigación: React escapa el contenido por defecto, no hay `dangerouslySetInnerHTML` y la web desplegada lleva una política de contenido (CSP) restrictiva definida en `render.yaml` (sin scripts en línea; `web/src/csp.test.ts` lo vigila). La CSP se probó en el navegador con la web compilada: sin violaciones al recorrer las páginas.
 - **JWT de 7 días sin revocación ni refresh.** Si el token se filtra, sirve hasta que caduque (la única forma de invalidar todos es cambiar `JWT_SECRET`). `JwtStrategy.validate` tampoco comprueba que el usuario siga existiendo; hoy no hay borrado de usuarios.
 - **Sin 2FA ni recuperación de contraseña.**
 - **Límite de intentos por IP, en memoria.** Con varias instancias cada una cuenta aparte; con una sola instancia (el caso previsto) es suficiente.
@@ -56,6 +56,7 @@ Revisión hecha el 2026-11-08 sobre la API (`api/`) y la web (`web/`). Es una re
 ```bash
 cd api && npm test                                   # incluye aislamiento, entradas hostiles, límite de intentos, configuración
 node scripts/scan-git-secrets.js                     # secretos en todo el historial (muestra dónde, nunca el valor)
+node scripts/check-render-yaml.js                    # render.yaml sin secretos y con lo necesario
 cd api && npm audit --omit=dev --registry=https://registry.npmjs.org/
 cd web && npm audit --omit=dev --registry=https://registry.npmjs.org/
 ```
