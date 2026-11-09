@@ -1,0 +1,55 @@
+# Blueprint de Render: crea la API y la web desde este repositorio.
+# Las variables con `sync: false` las escribes tú en el panel de Render (ver README).
+services:
+  - type: web
+    name: finanzas-api
+    runtime: node
+    plan: free
+    rootDir: api
+    # nest build necesita las devDependencies, por eso --include=dev.
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: node dist/main
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22
+      # Render genera un valor aleatorio y largo; nunca se guarda en git.
+      - key: JWT_SECRET
+        generateValue: true
+      # mongodb+srv://<usuario>:<contraseña>@<cluster>.mongodb.net/finanzas
+      - key: MONGODB_URI
+        sync: false
+      # URL https de la web, p. ej. https://finanzas-web.onrender.com (sin barra final)
+      - key: CORS_ORIGIN
+        sync: false
+      # Cámbialo a "false" cuando hayas creado tu cuenta.
+      - key: ALLOW_REGISTRATION
+        value: "true"
+
+  - type: web
+    name: finanzas-web
+    runtime: static
+    rootDir: web
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      # URL de la API con /api, p. ej. https://finanzas-api.onrender.com/api
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      # Las rutas de React Router (/movimientos...) deben servir index.html.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; connect-src 'self' https://*.onrender.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: same-origin
