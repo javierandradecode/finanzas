@@ -80,6 +80,9 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 - [x] Despliegue: API y web en un servicio gratuito + Atlas (desplegado en Render + Atlas el 2026-11-09 siguiendo el README; registro cerrado con `ALLOW_REGISTRATION=false`)
 - [x] README con instrucciones de instalación
 
+## Mejoras de interfaz
+- [x] Rediseño de `/cuentas`: total grande, reparto por tipo, filas agrupadas con subtotal, enlace a los movimientos de cada cuenta, menú de acciones, esqueleto de carga (diseño y plan en `docs/superpowers/`)
+
 ## Ideas para después
 - Migrar el frontend a Next.js (práctica para el mercado laboral)
 - Importar movimientos desde CSV del banco
