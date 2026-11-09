@@ -37,9 +37,9 @@
 
 ### Task 2: Helpers puros de la web (TDD)
 
-**Files:** Create `web/src/features/transactions/month.ts`, `day-groups.ts` (+ tests), `web/src/lib/use-slow.ts`; Modify `web/src/lib/dates.ts` (+ test), `filters.ts`, `filters.test.ts`, `AccountsPage.tsx` (usa `use-slow`).
+**Files:** Create `web/src/features/transactions/day-groups.ts`, `web/src/lib/use-slow.ts` (+ tests); Modify `web/src/lib/dates.ts`, `web/src/lib/months.ts` (+ tests), `filters.ts`, `filters.test.ts`, `AccountsPage.tsx` (usa `use-slow`). *Ajuste durante la ejecución: `lib/months.ts` y `MonthSelector` ya existían (los usan Presupuestos y Resumen), así que se reutilizan `shiftMonth`, `monthDateRange` y el selector; solo se añadió `monthOfRange`.*
 
-**Interfaces:** `monthOf(from?, to?): string | null` ("YYYY-MM" si es un mes completo); `monthRange(key): { from; to }`; `shiftMonth(key, delta): string`; `groupByDay<T extends { date: string }>(items: T[]): { day: string; items: T[] }[]`; `formatDayUtc(iso, now?): string`; `filtersFromSearch` lee `range=all`; `filtersToSearch` escribe `range=all` cuando no hay fechas; `filtersToQuery` y `filtersToExportQuery` nunca incluyen `range`; `useSlow(active, ms?)`.
+**Interfaces:** `monthOfRange(from?, to?): string | null` ("YYYY-MM" si es un mes completo, en `lib/months.ts`); `groupByDay<T extends { date: string }>(items: T[]): { day: string; items: T[] }[]`; `formatDayUtc(iso, now?): string`; `filtersFromSearch` lee `range=all`; `filtersToSearch` escribe `range=all` cuando no hay fechas; `filtersToQuery` y `filtersToExportQuery` nunca incluyen `range`; `useSlow(active, ms?)`.
 
 - [ ] Pruebas primero para cada helper (meses de 28/29/30/31 días, diciembre↔enero, rango no mensual → `null`, agrupación conserva orden, día UTC, año solo si no es el actual, `range=all` ida y vuelta, vaciar ambas fechas, `range` ausente de las consultas a la API).
 - [ ] Implementar; ejecutar la suite web.

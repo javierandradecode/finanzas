@@ -83,6 +83,8 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 ## Mejoras de interfaz
 - [x] Rediseño de `/cuentas`: total grande, reparto por tipo, filas agrupadas con subtotal, enlace a los movimientos de cada cuenta, menú de acciones, esqueleto de carga (diseño y plan en `docs/superpowers/`)
 
+- [x] Rediseño de `/movimientos`: libro por días, navegador de mes, resumen del período (`GET /transactions/summary`), filtros compactos con chips, menú de acciones, "Guardar y añadir otro" (diseño y plan en `docs/superpowers/`)
+
 ## Ideas para después
 - Migrar el frontend a Next.js (práctica para el mercado laboral)
 - Importar movimientos desde CSV del banco
