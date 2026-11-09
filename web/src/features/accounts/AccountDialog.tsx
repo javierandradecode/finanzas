@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import type { Account } from '@/api/accounts'
 import { useCreateAccount, useUpdateAccount } from '@/api/accounts'
 import { MoneyInput } from '@/components/MoneyInput'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { FieldError } from '@/features/auth/AuthShell'
+import { cn } from '@/lib/utils'
 import {
   ACCOUNT_TYPE_LABELS,
   accountSchema,
@@ -81,24 +82,35 @@ export function AccountDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Tipo</Label>
+            <Label id="account-type-label">Tipo</Label>
             <Controller
               control={control}
               name="type"
               render={({ field }) => (
-                <div className="flex gap-2">
+                // real radio inputs: arrow keys and screen readers work for free
+                <div role="radiogroup" aria-labelledby="account-type-label" className="flex gap-2">
                   {(Object.keys(ACCOUNT_TYPE_LABELS) as (keyof typeof ACCOUNT_TYPE_LABELS)[]).map(
                     (type) => (
-                      <Button
+                      <label
                         key={type}
-                        type="button"
-                        size="sm"
-                        variant={field.value === type ? 'default' : 'outline'}
-                        aria-pressed={field.value === type}
-                        onClick={() => field.onChange(type)}
+                        className={cn(
+                          buttonVariants({
+                            size: 'sm',
+                            variant: field.value === type ? 'default' : 'outline',
+                          }),
+                          'cursor-pointer has-focus-visible:ring-3 has-focus-visible:ring-ring/50',
+                        )}
                       >
+                        <input
+                          type="radio"
+                          name="account-type"
+                          className="sr-only"
+                          value={type}
+                          checked={field.value === type}
+                          onChange={() => field.onChange(type)}
+                        />
                         {ACCOUNT_TYPE_LABELS[type]}
-                      </Button>
+                      </label>
                     ),
                   )}
                 </div>
@@ -106,7 +118,11 @@ export function AccountDialog({
             />
           </div>
 
-          {!account && (
+          {account ? (
+            <p className="text-sm text-muted-foreground">
+              El saldo cambia con tus movimientos; no se edita aquí.
+            </p>
+          ) : (
             <div className="space-y-2">
               <Label htmlFor="account-balance">Saldo inicial</Label>
               <Controller
@@ -122,6 +138,9 @@ export function AccountDialog({
                   />
                 )}
               />
+              <p className="text-xs text-muted-foreground">
+                Es el punto de partida; después el saldo cambia con tus movimientos.
+              </p>
               <FieldError message={errors.initialBalanceCents?.message} />
             </div>
           )}
