@@ -350,6 +350,24 @@ const CASES: Case[] = [
   notFound('DELETE /api/transactions/:id', (c) =>
     asB(c, 'delete', `/transactions/${c.ids.txExpense}`),
   ),
+  {
+    route: 'GET /api/transactions/export',
+    run: (c) => asE(c, 'get', '/transactions/export'),
+    check: (res) => {
+      expect(res.status).toBe(200);
+      // Only BOM + header: nothing of A for a user without data.
+      expect(res.text.trim().split('\r\n')).toHaveLength(1);
+    },
+  },
+  {
+    route: 'GET /api/transactions/export',
+    run: (c) => asB(c, 'get', '/transactions/export'),
+    check: (res) => {
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('B cuenta 1'); // B does get its own rows
+      expect(res.text).not.toMatch(/A (cuenta|tarjeta|sub|propia)/);
+    },
+  },
   empty(
     'GET /api/transactions',
     (c) => asE(c, 'get', '/transactions?limit=100'),
