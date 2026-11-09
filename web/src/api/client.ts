@@ -29,10 +29,11 @@ async function errorMessage(res: Response): Promise<string> {
   return `Error ${res.status}`
 }
 
-export async function api<T>(
+/** Sends the request with the token; throws ApiError on network or HTTP errors. */
+async function request(
   path: string,
   options: { method?: string; body?: unknown } = {},
-): Promise<T> {
+): Promise<Response> {
   const headers = new Headers()
   const token = getToken()
   if (token) headers.set('Authorization', `Bearer ${token}`)
@@ -53,6 +54,23 @@ export async function api<T>(
     if (res.status === 401) onUnauthorized?.()
     throw new ApiError(res.status, await errorMessage(res))
   }
+  return res
+}
+
+export async function api<T>(
+  path: string,
+  options: { method?: string; body?: unknown } = {},
+): Promise<T> {
+  const res = await request(path, options)
   if (res.status === 204) return undefined as T
   return (await res.json()) as T
+}
+
+/** GET a file (e.g. a CSV export); the name comes from Content-Disposition. */
+export async function apiDownload(
+  path: string,
+): Promise<{ blob: Blob; filename: string }> {
+  const res = await request(path)
+  const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')
+  return { blob: await res.blob(), filename: name?.[1] ?? 'movimientos.csv' }
 }

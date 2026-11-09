@@ -1,4 +1,4 @@
-import { ApiError, api, setUnauthorizedHandler } from './client'
+import { ApiError, api, apiDownload, setUnauthorizedHandler } from './client'
 import { clearToken, setToken } from '@/lib/token'
 
 function mockFetch(status: number, body?: unknown, raw?: string) {
@@ -83,5 +83,50 @@ describe('api client', () => {
       status: 500,
       message: 'Error 500',
     })
+  })
+})
+
+describe('apiDownload', () => {
+  beforeEach(() => {
+    clearToken()
+    setUnauthorizedHandler(null)
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  const file = (headers: Record<string, string> = {}) =>
+    new Response('a,b', { status: 200, headers })
+
+  it('sends the token and returns the blob with the server file name', async () => {
+    setToken('tok')
+    const fn = vi.fn().mockResolvedValue(
+      file({ 'Content-Disposition': 'attachment; filename="movimientos-2026-03-15.csv"' }),
+    )
+    vi.stubGlobal('fetch', fn)
+    const out = await apiDownload('/transactions/export?type=income')
+    expect(headersOf(fn).get('Authorization')).toBe('Bearer tok')
+    expect(fn.mock.calls[0][0]).toMatch(/\/transactions\/export\?type=income$/)
+    expect(out.filename).toBe('movimientos-2026-03-15.csv')
+    expect(await out.blob.text()).toBe('a,b')
+  })
+
+  it('falls back to a default file name', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(file()))
+    expect((await apiDownload('/x')).filename).toBe('movimientos.csv')
+  })
+
+  it('throws the API message on errors and reports 401', async () => {
+    const onUnauthorized = vi.fn()
+    setUnauthorizedHandler(onUnauthorized)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: 'nope' }), { status: 401 })),
+    )
+    await expect(apiDownload('/x')).rejects.toMatchObject({ status: 401, message: 'nope' })
+    expect(onUnauthorized).toHaveBeenCalled()
+  })
+
+  it('reports a network failure', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('x')))
+    await expect(apiDownload('/x')).rejects.toMatchObject({ status: 0 })
   })
 })

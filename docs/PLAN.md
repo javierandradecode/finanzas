@@ -76,7 +76,7 @@ Marca cada fase con [x] al terminarla. Cada fase termina con un commit.
 
 ## Fase 11 — Cierre
 - [x] Revisión de seguridad (filtrado por usuario, validaciones, secretos)
-- [ ] Exportar movimientos a CSV
+- [x] Exportar movimientos a CSV
 - [ ] Despliegue: API y web en un servicio gratuito + Atlas
 - [ ] README con instrucciones de instalación
 

@@ -4,13 +4,17 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { filtersToQuery, type TxFilters } from '@/features/transactions/filters'
+import {
+  filtersToExportQuery,
+  filtersToQuery,
+  type TxFilters,
+} from '@/features/transactions/filters'
 import type {
   CreatePayload,
   TxType,
   UpdatePayload,
 } from '@/features/transactions/transaction-form'
-import { api } from './client'
+import { api, apiDownload } from './client'
 
 export interface Transaction {
   _id: string
@@ -72,3 +76,19 @@ export const useDeleteTransaction = () =>
   useTransactionMutation((id: string) =>
     api<void>(`/transactions/${id}`, { method: 'DELETE' }),
   )
+
+/** Downloads the CSV of the transactions matching the filters. */
+export const useExportTransactions = () =>
+  useMutation({
+    mutationFn: async (filters: TxFilters) => {
+      const { blob, filename } = await apiDownload(
+        `/transactions/export${filtersToExportQuery(filters)}`,
+      )
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      link.click()
+      URL.revokeObjectURL(url)
+    },
+  })

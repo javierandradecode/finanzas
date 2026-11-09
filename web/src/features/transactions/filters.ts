@@ -53,3 +53,10 @@ export function filtersToQuery(f: TxFilters, limit = 20): string {
   p.set('limit', String(limit))
   return `?${p.toString()}`
 }
+
+/** Query string for GET /transactions/export: the active filters, no paging. */
+export function filtersToExportQuery(f: TxFilters): string {
+  const p = filtersToSearch({ ...f, page: 1 })
+  const qs = p.toString()
+  return qs ? `?${qs}` : ''
+}
