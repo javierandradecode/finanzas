@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -45,6 +45,13 @@ const lists = {
   'GET /categories?includeArchived=true': () => jsonResponse(200, categories),
 }
 const MARCH = '/transactions?from=2026-03-01&to=2026-03-31&page=1&limit=20'
+const SUMMARY = '/transactions/summary?from=2026-03-01&to=2026-03-31'
+
+/** Opens the row menu of a movement (by its title) and picks an action. */
+async function pickAction(title: string, action: string) {
+  await userEvent.click(await screen.findByRole('button', { name: `Acciones de ${title}` }))
+  await userEvent.click(await screen.findByRole('menuitem', { name: action }))
+}
 
 function Where() {
   const l = useLocation()
@@ -100,7 +107,8 @@ describe('TransactionsPage', () => {
     const [r1, r2, r3, r4, r5, r6, r7] = rows()
 
     expect(within(r1).getByText(/1\.234,56/)).toHaveTextContent('-')
-    expect(within(r1).getByTestId('amount')).toHaveClass('text-destructive')
+    // an ordinary expense is not an alert: normal text colour
+    expect(within(r1).getByTestId('amount')).not.toHaveClass('text-destructive')
     expect(within(r2).getByTestId('amount')).toHaveTextContent('+')
     expect(within(r2).getByText('Salario')).toBeInTheDocument()
     expect(within(r3).getByText('Transferencia')).toBeInTheDocument()
@@ -114,32 +122,182 @@ describe('TransactionsPage', () => {
     expect(within(r7).getByText(/Antigua/)).toBeInTheDocument()
   })
 
-  it('installment transactions have no edit or delete actions', async () => {
+  it('installment transactions have no menu', async () => {
     routeFetch({ ...lists, [`GET ${MARCH}`]: () => page([installment, expense]) })
     renderPage()
     await screen.findByText('Mercado')
     const [r1, r2] = rows()
-    expect(within(r1).queryByRole('button', { name: 'Editar' })).toBeNull()
-    expect(within(r1).queryByRole('button', { name: 'Eliminar' })).toBeNull()
+    expect(within(r1).queryByRole('button', { name: /Acciones de/ })).toBeNull()
     expect(within(r1).getByText(/Gestionado por una compra a cuotas/)).toBeInTheDocument()
-    expect(within(r2).getByRole('button', { name: 'Editar' })).toBeInTheDocument()
-    expect(within(r2).getByRole('button', { name: 'Eliminar' })).toBeInTheDocument()
+    expect(within(r2).getByRole('button', { name: 'Acciones de Mercado' })).toBeInTheDocument()
   })
 
-  it('a filter goes to the request and the URL, and resets the page to 1', async () => {
-    const calls = routeFetch({
-      ...lists,
-      [`GET /transactions?from=2026-03-01&to=2026-03-31&page=3&limit=20`]: () => page([expense], { total: 45, page: 3 }),
-      [`GET /transactions?from=2026-03-01&to=2026-03-31&type=expense&page=1&limit=20`]: () => page([expense]),
-    })
-    renderPage('/movimientos?page=3')
+  it('groups the page by day with one heading per day', async () => {
+    const monday = tx({ _id: 't8', date: '2026-03-09T00:00:00.000Z', accountId: 'a1', categoryId: 'c1', note: 'Lunes' })
+    routeFetch({ ...lists, [`GET ${MARCH}`]: () => page([expense, income, monday]) })
+    renderPage()
     await screen.findByText('Mercado')
-    await userEvent.selectOptions(screen.getByLabelText('Tipo'), 'expense')
-    await waitFor(() =>
-      expect(calls.some((c) => c.path.includes('type=expense') && c.path.includes('page=1'))).toBe(true),
-    )
-    expect(screen.getByTestId('where').textContent).toContain('type=expense')
-    expect(screen.getByTestId('where').textContent).not.toContain('page=')
+    const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
+    expect(headings).toEqual([
+      expect.stringMatching(/^martes,? 10 de marzo$/),
+      expect.stringMatching(/^lunes,? 9 de marzo$/),
+    ])
+    expect(rows()).toHaveLength(3)
+  })
+
+  describe('period summary', () => {
+    it('shows income, expenses and net of the whole period, not just the page', async () => {
+      routeFetch({
+        ...lists,
+        [`GET ${MARCH}`]: () => page([expense], { total: 45 }),
+        [`GET ${SUMMARY}`]: () => jsonResponse(200, { incomeCents: 240000, expenseCents: 115030 }),
+      })
+      renderPage()
+      expect(await screen.findByTestId('summary-income')).toHaveTextContent('2.400,00')
+      expect(screen.getByTestId('summary-expense')).toHaveTextContent('1.150,30')
+      expect(screen.getByTestId('summary-net')).toHaveTextContent('1.249,70')
+      expect(screen.getByTestId('summary-net')).not.toHaveClass('text-destructive')
+    })
+
+    it('writes a negative net in red', async () => {
+      routeFetch({
+        ...lists,
+        [`GET ${MARCH}`]: () => page([expense]),
+        [`GET ${SUMMARY}`]: () => jsonResponse(200, { incomeCents: 1000, expenseCents: 5000 }),
+      })
+      renderPage()
+      expect(await screen.findByTestId('summary-net')).toHaveClass('text-destructive')
+    })
+
+    it('uses the same filters as the list, and not the page or the range marker', async () => {
+      const calls = routeFetch({
+        ...lists,
+        [`GET /transactions?from=2026-03-01&to=2026-03-31&type=expense&page=2&limit=20`]: () => page([expense], { total: 45, page: 2 }),
+        [`GET ${SUMMARY}&type=expense`]: () => jsonResponse(200, { incomeCents: 0, expenseCents: 5 }),
+      })
+      renderPage('/movimientos?type=expense&page=2')
+      await screen.findByTestId('summary-expense')
+      expect(calls.some((c) => c.path === `${SUMMARY}&type=expense`)).toBe(true)
+    })
+
+    it('does not ask again when only the page changes', async () => {
+      const calls = routeFetch({
+        ...lists,
+        [`GET ${MARCH}`]: () => page([expense], { total: 45 }),
+        [`GET /transactions?from=2026-03-01&to=2026-03-31&page=2&limit=20`]: () => page([income], { total: 45, page: 2 }),
+        [`GET ${SUMMARY}`]: () => jsonResponse(200, { incomeCents: 0, expenseCents: 0 }),
+      })
+      renderPage()
+      await screen.findByTestId('summary-net')
+      await userEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
+      expect(await screen.findByText(/Página 2 de 3/)).toBeInTheDocument()
+      expect(calls.filter((c) => c.path.startsWith('/transactions/summary'))).toHaveLength(1)
+    })
+
+    it('stays hidden, without breaking the list, when the summary fails', async () => {
+      routeFetch({
+        ...lists,
+        [`GET ${MARCH}`]: () => page([expense]),
+        [`GET ${SUMMARY}`]: () => jsonResponse(500, { message: 'boom' }),
+      })
+      renderPage()
+      expect(await screen.findByText('Mercado')).toBeInTheDocument()
+      expect(screen.queryByTestId('summary')).toBeNull()
+    })
+  })
+
+  describe('period and filters', () => {
+    it('shows the month and moves with the arrows', async () => {
+      routeFetch({
+        ...lists,
+        [`GET ${MARCH}`]: () => page([expense]),
+        [`GET /transactions?from=2026-02-01&to=2026-02-28&page=1&limit=20`]: () => page([income]),
+      })
+      renderPage()
+      expect(await screen.findByTestId('month')).toHaveTextContent('marzo de 2026')
+      await userEvent.click(screen.getByRole('button', { name: 'Mes anterior' }))
+      expect(await screen.findByText('Salario')).toBeInTheDocument()
+      expect(screen.getByTestId('where')).toHaveTextContent('from=2026-02-01&to=2026-02-28')
+    })
+
+    it('names a custom range and goes back to this month with one click', async () => {
+      routeFetch({
+        ...lists,
+        [`GET /transactions?from=2026-03-05&to=2026-03-20&page=1&limit=20`]: () => page([expense]),
+        [`GET ${MARCH}`]: () => page([income]),
+      })
+      renderPage('/movimientos?from=2026-03-05&to=2026-03-20')
+      expect(await screen.findByTestId('period')).toHaveTextContent('Rango personalizado')
+      await userEvent.click(screen.getByRole('button', { name: 'Este mes' }))
+      expect(await screen.findByTestId('month')).toHaveTextContent('marzo de 2026')
+    })
+
+    it('emptying both dates shows the whole history instead of snapping back to the month', async () => {
+      const calls = routeFetch({
+        ...lists,
+        [`GET ${MARCH}`]: () => page([expense]),
+        [`GET /transactions?page=1&limit=20`]: () => page([expense, income]),
+      })
+      renderPage()
+      await screen.findByText('Mercado')
+      await userEvent.click(screen.getByRole('button', { name: 'Más filtros' }))
+      await userEvent.clear(screen.getByLabelText('Desde'))
+      await userEvent.clear(screen.getByLabelText('Hasta'))
+      expect(await screen.findByTestId('period')).toHaveTextContent('Todo el historial')
+      expect(screen.getByTestId('where')).toHaveTextContent('range=all')
+      await waitFor(() => expect(rows()).toHaveLength(2))
+      // the marker is a web-only thing
+      expect(calls.some((c) => c.path.includes('range'))).toBe(false)
+    })
+
+    it('a type filter goes to the request and the URL, and resets the page to 1', async () => {
+      const calls = routeFetch({
+        ...lists,
+        [`GET /transactions?from=2026-03-01&to=2026-03-31&page=3&limit=20`]: () => page([expense], { total: 45, page: 3 }),
+        [`GET /transactions?from=2026-03-01&to=2026-03-31&type=expense&page=1&limit=20`]: () => page([expense]),
+      })
+      renderPage('/movimientos?page=3')
+      await screen.findByText('Mercado')
+      expect(screen.getByRole('radio', { name: 'Todos' })).toBeChecked()
+      await userEvent.click(screen.getByRole('radio', { name: 'Gastos' }))
+      await waitFor(() =>
+        expect(calls.some((c) => c.path.includes('type=expense') && c.path.includes('page=1'))).toBe(true),
+      )
+      expect(screen.getByTestId('where').textContent).toContain('type=expense')
+      expect(screen.getByTestId('where').textContent).not.toContain('page=')
+    })
+
+    it('account and category are in "Más filtros" and filter the list', async () => {
+      const calls = routeFetch({
+        ...lists,
+        [`GET ${MARCH}`]: () => page([expense]),
+        [`GET /transactions?from=2026-03-01&to=2026-03-31&accountId=a2&page=1&limit=20`]: () => page([income]),
+      })
+      renderPage()
+      await screen.findByText('Mercado')
+      expect(screen.queryByLabelText('Cuenta')).toBeNull()
+      await userEvent.click(screen.getByRole('button', { name: 'Más filtros' }))
+      await userEvent.selectOptions(screen.getByLabelText('Cuenta'), 'a2')
+      // "Salario" is also an option of the category select, so look inside the rows
+      await waitFor(() => expect(within(rows()[0]).getByText('Salario')).toBeInTheDocument())
+      expect(calls.some((c) => c.path.includes('accountId=a2'))).toBe(true)
+    })
+
+    it('shows removable chips for the account and category filters', async () => {
+      routeFetch({
+        ...lists,
+        [`GET /transactions?from=2026-03-01&to=2026-03-31&accountId=a1&categoryId=c1&page=1&limit=20`]: () => page([expense]),
+        [`GET /transactions?from=2026-03-01&to=2026-03-31&categoryId=c1&page=1&limit=20`]: () => page([income]),
+      })
+      renderPage('/movimientos?accountId=a1&categoryId=c1')
+      expect(await screen.findByText('Cuenta: Caja')).toBeInTheDocument()
+      expect(screen.getByText('Categoría: Alimentación')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Quitar filtro de cuenta' }))
+      expect(await screen.findByText('Salario')).toBeInTheDocument()
+      expect(screen.queryByText('Cuenta: Caja')).toBeNull()
+      expect(screen.getByTestId('where').textContent).not.toContain('accountId')
+      expect(screen.getByTestId('where').textContent).toContain('categoryId=c1')
+    })
   })
 
   it('paginates with Anterior/Siguiente', async () => {
@@ -158,26 +316,65 @@ describe('TransactionsPage', () => {
     expect(await screen.findByText(/Página 2 de 3/)).toBeInTheDocument()
   })
 
-  it('shows an empty state for an out-of-range page', async () => {
-    routeFetch({
-      ...lists,
-      [`GET /transactions?from=2026-03-01&to=2026-03-31&page=99&limit=20`]: () => page([], { total: 45, page: 99 }),
+  describe('empty states', () => {
+    it('an out-of-range page offers to go back to the first one', async () => {
+      routeFetch({
+        ...lists,
+        [`GET /transactions?from=2026-03-01&to=2026-03-31&page=99&limit=20`]: () => page([], { total: 45, page: 99 }),
+        [`GET ${MARCH}`]: () => page([expense], { total: 45 }),
+      })
+      renderPage('/movimientos?page=99')
+      expect(await screen.findByText('Esta página no tiene movimientos.')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Ir a la primera página' }))
+      expect(await screen.findByText('Mercado')).toBeInTheDocument()
     })
-    renderPage('/movimientos?page=99')
-    expect(await screen.findByText('No hay movimientos para estos filtros.')).toBeInTheDocument()
+
+    it('with filters it says so and lets you remove them', async () => {
+      routeFetch({
+        ...lists,
+        [`GET /transactions?from=2026-03-01&to=2026-03-31&type=income&page=1&limit=20`]: () => page([]),
+        [`GET ${MARCH}`]: () => page([expense]),
+      })
+      renderPage('/movimientos?type=income')
+      expect(await screen.findByText('No hay movimientos con estos filtros.')).toBeInTheDocument()
+      expect(screen.queryByText(/Página/)).toBeNull()
+      await userEvent.click(screen.getByRole('button', { name: 'Quitar filtros' }))
+      expect(await screen.findByText('Mercado')).toBeInTheDocument()
+      expect(screen.getByRole('radio', { name: 'Todos' })).toBeChecked()
+    })
+
+    it('an empty month names the month and offers the whole history', async () => {
+      routeFetch({
+        ...lists,
+        [`GET ${MARCH}`]: () => page([]),
+        [`GET /transactions?page=1&limit=20`]: () => page([expense]),
+      })
+      renderPage()
+      expect(await screen.findByText('No hay movimientos en marzo de 2026.')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Ver todo el historial' }))
+      expect(await screen.findByText('Mercado')).toBeInTheDocument()
+      expect(screen.getByTestId('where')).toHaveTextContent('range=all')
+    })
+
+    it('with nothing at all, invites to register the first movement', async () => {
+      routeFetch({ ...lists, [`GET /transactions?page=1&limit=20`]: () => page([]) })
+      renderPage('/movimientos?range=all')
+      expect(await screen.findByText('Aún no registras movimientos.')).toBeInTheDocument()
+      expect(screen.queryByText(/Página/)).toBeNull()
+    })
   })
 
-  it('Limpiar goes back to the current month', async () => {
-    routeFetch({
-      ...lists,
-      [`GET /transactions?from=2026-01-01&to=2026-01-31&page=1&limit=20`]: () => page([]),
-      [`GET ${MARCH}`]: () => page([expense]),
+  it('shows a skeleton while loading, and the wake-up hint only when it is slow', async () => {
+    vi.useFakeTimers() // all timers, this time
+    vi.setSystemTime(new Date(2026, 2, 15, 12, 0))
+    routeFetch({ ...lists, [`GET ${MARCH}`]: () => new Promise<Response>(() => {}) as never })
+    renderPage()
+    expect(screen.getByTestId('transactions-skeleton')).toBeInTheDocument()
+    expect(screen.queryByText(/primera carga/)).toBeNull()
+    act(() => {
+      vi.advanceTimersByTime(4000)
     })
-    renderPage('/movimientos?from=2026-01-01&to=2026-01-31')
-    await screen.findByText('No hay movimientos para estos filtros.')
-    await userEvent.click(screen.getByRole('button', { name: 'Limpiar' }))
-    expect(await screen.findByText('Mercado')).toBeInTheDocument()
-    expect(screen.getByTestId('where')).toHaveTextContent('')
+    expect(screen.getByText(/primera carga puede tardar/)).toBeInTheDocument()
   })
 
   it('deletes after confirming', async () => {
@@ -188,7 +385,7 @@ describe('TransactionsPage', () => {
     })
     renderPage()
     await screen.findByText('Mercado')
-    await userEvent.click(screen.getByRole('button', { name: 'Eliminar' }))
+    await pickAction('Mercado', 'Eliminar')
     expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
     const dialog = await screen.findByRole('dialog')
     await userEvent.click(within(dialog).getByRole('button', { name: 'Eliminar' }))
@@ -204,7 +401,7 @@ describe('TransactionsPage', () => {
     })
     renderPage()
     await screen.findByText('Mercado')
-    await userEvent.click(screen.getByRole('button', { name: 'Eliminar' }))
+    await pickAction('Mercado', 'Eliminar')
     const dialog = await screen.findByRole('dialog')
     await userEvent.click(within(dialog).getByRole('button', { name: 'Eliminar' }))
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('managed by an installment purchase'))
@@ -214,7 +411,7 @@ describe('TransactionsPage', () => {
     routeFetch({ ...lists, [`GET ${MARCH}`]: () => page([expense]) })
     renderPage()
     await screen.findByText('Mercado')
-    await userEvent.click(screen.getByRole('button', { name: 'Editar' }))
+    await pickAction('Mercado', 'Editar')
     expect(await screen.findByText('Editar movimiento')).toBeInTheDocument()
     expect(await screen.findByLabelText('Monto')).toHaveValue('1234,56')
   })

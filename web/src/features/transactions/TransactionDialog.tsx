@@ -11,6 +11,7 @@ import {
 } from '@/api/transactions'
 import { MoneyInput } from '@/components/MoneyInput'
 import { NativeSelect } from '@/components/NativeSelect'
+import { Segmented } from '@/components/Segmented'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -36,6 +37,10 @@ const TYPE_LABELS: Record<TxType, string> = {
   income: 'Ingreso',
   transfer: 'Transferencia',
 }
+const TYPE_OPTIONS = (Object.keys(TYPE_LABELS) as TxType[]).map((value) => ({
+  value,
+  label: TYPE_LABELS[value],
+}))
 const SOURCE_LABELS: Record<TxType, string> = {
   expense: 'Pagado con',
   income: 'Cuenta',
@@ -122,6 +127,7 @@ function TransactionForm({
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
@@ -156,7 +162,7 @@ function TransactionForm({
     if (next !== 'transfer') setValue('destination', '')
   }
 
-  const onSubmit = async (values: TransactionFormValues) => {
+  const onSubmit = async (values: TransactionFormValues, addAnother = false) => {
     try {
       if (transaction) {
         await update.mutateAsync({ id: transaction._id, ...toUpdatePayload(values) })
@@ -164,7 +170,13 @@ function TransactionForm({
         await create.mutateAsync(toCreatePayload(values))
       }
       toast.success(transaction ? 'Movimiento actualizado' : 'Movimiento creado')
-      onOpenChange(false)
+      if (addAnother) {
+        // what usually repeats stays; what belongs to the next movement is emptied
+        reset({ ...emptyValues(), type: values.type, date: values.date, source: values.source })
+        document.getElementById('tx-amount')?.focus()
+      } else {
+        onOpenChange(false)
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Ocurrió un error inesperado')
     }
@@ -193,21 +205,13 @@ function TransactionForm({
   )
 
   return (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div className="flex gap-2">
-            {(Object.keys(TYPE_LABELS) as TxType[]).map((t) => (
-              <Button
-                key={t}
-                type="button"
-                size="sm"
-                variant={type === t ? 'default' : 'outline'}
-                aria-pressed={type === t}
-                onClick={() => changeType(t)}
-              >
-                {TYPE_LABELS[t]}
-              </Button>
-            ))}
-          </div>
+        <form onSubmit={handleSubmit((values) => onSubmit(values))} className="space-y-4" noValidate>
+          <Segmented
+            label="Tipo de movimiento"
+            value={type}
+            options={TYPE_OPTIONS}
+            onChange={changeType}
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
@@ -289,9 +293,22 @@ function TransactionForm({
             <FieldError message={errors.note?.message} />
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Guardando…' : 'Guardar'}
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button type="submit" className="flex-1" disabled={isSubmitting}>
+              {isSubmitting ? 'Guardando…' : 'Guardar'}
+            </Button>
+            {!transaction && (
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                disabled={isSubmitting}
+                onClick={() => void handleSubmit((values) => onSubmit(values, true))()}
+              >
+                Guardar y añadir otro
+              </Button>
+            )}
+          </div>
         </form>
   )
 }

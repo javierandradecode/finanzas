@@ -1,4 +1,4 @@
-import { formatDateUtc, formatMonth, formatMonthShort, monthRangeLocal, todayLocal } from './dates'
+import { formatDateUtc, formatDayUtc, formatMonth, formatMonthShort, monthRangeLocal, todayLocal } from './dates'
 
 describe('dates', () => {
   it('todayLocal uses the local calendar, not UTC', () => {
@@ -40,5 +40,18 @@ describe('formatMonthShort', () => {
     expect(march).toContain('mar')
     expect(march).toContain('26')
     expect(formatMonthShort('2025-12')).toContain('dic')
+  })
+})
+
+describe('formatDayUtc', () => {
+  const now = new Date(2026, 5, 1)
+  it('writes weekday, day and month for the current year', () => {
+    expect(formatDayUtc('2026-03-10T00:00:00.000Z', now)).toMatch(/^martes,? 10 de marzo$/)
+  })
+  it('adds the year when it is not the current one', () => {
+    expect(formatDayUtc('2025-12-31T00:00:00.000Z', now)).toMatch(/^miércoles,? 31 de diciembre de 2025$/)
+  })
+  it('shows the UTC day even late in the evening UTC', () => {
+    expect(formatDayUtc('2026-03-10T23:59:00.000Z', now)).toMatch(/10 de marzo/)
   })
 })
